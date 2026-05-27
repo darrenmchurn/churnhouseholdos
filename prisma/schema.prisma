@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  PARENT
+  CHILD
+  KIOSK
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum Frequency {
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  email        String?  @unique
+  passwordHash String
+  role         Role     @default(CHILD)
+  avatarColor  String   @default("#6366f1")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  assignedTasks  Task[]         @relation("TaskAssignee")
+  createdTasks   Task[]         @relation("TaskCreator")
+  assignedChores Chore[]        @relation("ChoreAssignee")
+  createdEvents  Event[]
+  groceryItems   GroceryItem[]
+  announcements  Announcement[]
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  dueDate     DateTime?
+  priority    Priority  @default(MEDIUM)
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  assigneeId String?
+  assignee   User?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  creatorId  String
+  creator    User    @relation("TaskCreator", fields: [creatorId], references: [id])
+}
+
+model Chore {
+  id            String    @id @default(cuid())
+  title         String
+  frequency     Frequency @default(WEEKLY)
+  pointValue    Int       @default(1)
+  lastCompleted DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  assigneeId String?
+  assignee   User?   @relation("ChoreAssignee", fields: [assigneeId], references: [id])
+}
+
+model Event {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  startDate   DateTime
+  endDate     DateTime?
+  allDay      Boolean   @default(false)
+  color       String    @default("#6366f1")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  creatorId String
+  creator   User   @relation(fields: [creatorId], references: [id])
+}
+
+model GroceryItem {
+  id        String   @id @default(cuid())
+  name      String
+  quantity  String?
+  category  String?
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  addedById String
+  addedBy   User   @relation(fields: [addedById], references: [id])
+}
+
+model Announcement {
+  id        String    @id @default(cuid())
+  title     String
+  body      String
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+
+  creatorId String
+  creator   User   @relation(fields: [creatorId], references: [id])
+}
+
+// Phase 5: smart home settings stored here (HA_URL, HA_TOKEN, etc.)
+model Settings {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+}
