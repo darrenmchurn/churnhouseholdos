@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { signIn } from "next-auth/react"
-import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 
 type User = { id: string; name: string; role: string; avatarColor: string }
@@ -15,7 +14,6 @@ const ROLE_EMOJI: Record<string, string> = {
 }
 
 export function LoginForm({ users }: { users: User[] }) {
-  const router = useRouter()
   const [selected, setSelected] = useState<User | null>(null)
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
@@ -28,20 +26,25 @@ export function LoginForm({ users }: { users: User[] }) {
     setLoading(true)
     setError("")
 
-    const result = await signIn("credentials", {
-      name: selected.name,
-      password,
-      redirect: false,
-    })
+    try {
+      const result = await signIn("credentials", {
+        name: selected.name,
+        password,
+        redirect: false,
+      })
 
-    setLoading(false)
+      setLoading(false)
 
-    if (result?.error) {
-      setError("Wrong password. Try again.")
-      setPassword("")
-    } else {
-      router.push("/dashboard")
-      router.refresh()
+      if (result?.error) {
+        setError("Wrong password. Try again.")
+        setPassword("")
+      } else {
+        // Hard redirect ensures the browser sends the fresh session cookie
+        window.location.href = "/dashboard"
+      }
+    } catch {
+      setLoading(false)
+      setError("Sign-in failed. Please try again.")
     }
   }
 
