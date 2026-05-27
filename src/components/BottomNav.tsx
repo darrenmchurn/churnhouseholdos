@@ -16,30 +16,37 @@ import {
 type NavItem = {
   href: string
   label: string
+  emoji: string
   icon: React.ElementType
   roles?: string[]
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", label: "Home", icon: LayoutDashboard },
-  { href: "/tasks", label: "Tasks", icon: CheckSquare, roles: ["ADMIN", "PARENT", "CHILD"] },
-  { href: "/chores", label: "Chores", icon: Sparkles },
-  { href: "/calendar", label: "Calendar", icon: CalendarDays },
-  { href: "/grocery", label: "Grocery", icon: ShoppingCart, roles: ["ADMIN", "PARENT", "CHILD"] },
-  { href: "/activity", label: "History", icon: History, roles: ["ADMIN", "PARENT", "CHILD"] },
-  { href: "/admin", label: "Admin", icon: Settings, roles: ["ADMIN", "PARENT"] },
+  { href: "/dashboard", label: "Home",     emoji: "🏠", icon: LayoutDashboard },
+  { href: "/tasks",     label: "Tasks",    emoji: "✅", icon: CheckSquare,  roles: ["ADMIN", "PARENT", "CHILD"] },
+  { href: "/chores",    label: "Chores",   emoji: "✨", icon: Sparkles },
+  { href: "/calendar",  label: "Calendar", emoji: "📅", icon: CalendarDays },
+  { href: "/grocery",   label: "Grocery",  emoji: "🛒", icon: ShoppingCart, roles: ["ADMIN", "PARENT", "CHILD"] },
+  { href: "/activity",  label: "History",  emoji: "📋", icon: History,      roles: ["ADMIN", "PARENT", "CHILD"] },
+  { href: "/admin",     label: "Admin",    emoji: "⚙️", icon: Settings,     roles: ["ADMIN", "PARENT"] },
 ]
 
-export function BottomNav({ role }: { role: string }) {
+export function BottomNav({ role, theme }: { role: string; theme: string }) {
   const pathname = usePathname()
+  const isKids    = theme === "kids"
+  const isCompact = theme === "compact"
 
   const visible = NAV_ITEMS.filter(
     (item) => !item.roles || item.roles.includes(role)
   )
 
+  const iconSize    = isKids ? 24 : isCompact ? 19 : 22
+  const navHeight   = isKids ? "h-[4.5rem]" : "h-16"
+  const labelSize   = isCompact ? "text-[9px]" : "text-[10px]"
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 safe-area-pb">
-      <div className="flex items-stretch h-16">
+    <nav className={cn("fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 safe-area-pb", navHeight)}>
+      <div className="flex items-stretch h-full">
         {visible.map((item) => {
           const Icon = item.icon
           const active = pathname === item.href || pathname.startsWith(item.href + "/")
@@ -53,11 +60,13 @@ export function BottomNav({ role }: { role: string }) {
               )}
             >
               <Icon
-                size={22}
+                size={iconSize}
                 strokeWidth={active ? 2.5 : 1.8}
                 className={cn(active && "scale-110 transition-transform")}
               />
-              <span className="text-[10px] font-medium leading-none">{item.label}</span>
+              <span className={cn("font-medium leading-none", labelSize)}>
+                {isKids ? `${item.emoji} ${item.label}` : item.label}
+              </span>
             </Link>
           )
         })}

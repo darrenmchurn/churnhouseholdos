@@ -16,3 +16,157 @@ body {
 .scroll-container {
   -webkit-overflow-scrolling: touch;
 }
+
+/* Hide scrollbar for filter chip rows */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ═══════════════════════════════════════════
+   KIDS THEME — larger text, rounder, friendlier
+   ═══════════════════════════════════════════ */
+[data-theme="kids"] {
+  --spacing: 0.28rem;
+  --text-xs: 0.875rem;
+  --text-xs--line-height: calc(1.25 / 0.875);
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: calc(1.375 / 0.9375);
+  --radius-xl:  1rem;
+  --radius-2xl: 1.25rem;
+  --radius-3xl: 1.75rem;
+}
+
+/* ═══════════════════════════════════════════
+   COMPACT THEME — tighter spacing/radius for power users
+   ═══════════════════════════════════════════ */
+[data-theme="compact"] {
+  --spacing: 0.2rem;
+  --radius-xl:  0.5rem;
+  --radius-2xl: 0.625rem;
+  --radius-3xl: 0.875rem;
+}
+
+/* ═══════════════════════════════════════════
+   DARK THEME — black base, neon cyan accent
+   ═══════════════════════════════════════════ */
+[data-theme="dark"] {
+  background-color: #09090b;
+
+  /* Remap the entire slate palette (inverted for dark) */
+  --color-slate-50:  #09090b;
+  --color-slate-100: #18181b;
+  --color-slate-200: #3f3f46;
+  --color-slate-300: #52525b;
+  --color-slate-400: #71717a;
+  --color-slate-500: #a1a1aa;
+  --color-slate-600: #d4d4d8;
+  --color-slate-700: #e4e4e7;
+  --color-slate-800: #f4f4f5;
+  --color-slate-900: #fafafa;
+
+  /* White → dark card surface */
+  --color-white: #18181b;
+
+  /* Neon cyan replaces indigo */
+  --color-indigo-50:  oklch(20%  0.04 196);
+  --color-indigo-100: oklch(24%  0.07 196);
+  --color-indigo-200: oklch(32%  0.10 196);
+  --color-indigo-300: oklch(55%  0.14 196);
+  --color-indigo-400: oklch(65%  0.17 196);
+  --color-indigo-500: oklch(73%  0.19 196);
+  --color-indigo-600: oklch(80%  0.20 196);
+  --color-indigo-700: oklch(85%  0.18 196);
+  --color-indigo-900: oklch(93%  0.10 196);
+
+  /* Stat card tints */
+  --color-blue-50:    rgba(59,  130, 246, 0.12);
+  --color-blue-600:   #60a5fa;
+  --color-yellow-50:  rgba(234, 179,   8, 0.12);
+  --color-yellow-600: #facc15;
+  --color-green-50:   rgba(34,  197,  94, 0.12);
+  --color-green-600:  #4ade80;
+  --color-pink-50:    rgba(236,  72, 153, 0.12);
+  --color-pink-600:   #f472b6;
+
+  /* Role badge tints */
+  --color-purple-100: rgba(168, 85, 247, 0.15);
+  --color-purple-700: #c084fc;
+  --color-blue-100:   rgba(59, 130, 246, 0.15);
+  --color-blue-700:   #60a5fa;
+  --color-green-100:  rgba(34, 197, 94, 0.15);
+  --color-green-700:  #4ade80;
+  --color-orange-100: rgba(249, 115, 22, 0.15);
+  --color-orange-700: #fb923c;
+
+  /* Error/danger */
+  --color-red-50:  rgba(239, 68, 68, 0.10);
+  --color-red-200: rgba(239, 68, 68, 0.25);
+  --color-red-700: #f87171;
+  --color-red-500: #f87171;
+  --color-red-600: #f87171;
+}
+
+/* bg-white is sometimes hardcoded; belt + suspenders */
+[data-theme="dark"] .bg-white    { background-color: #18181b; }
+[data-theme="dark"] .bg-slate-50 { background-color: #09090b; }
+
+/* Input / select / textarea dark surfaces */
+[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background-color: #27272a;
+  color: #fafafa;
+  border-color: #3f3f46;
+}
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #52525b;
+}
+
+/* Neon glow on the active nav icon */
+[data-theme="dark"] nav .text-indigo-600 {
+  filter: drop-shadow(0 0 6px oklch(80% 0.20 196));
+}
+
+/* Cards get a subtle dark shadow */
+[data-theme="dark"] .shadow-sm {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.6);
+}
+
+/* ═══════════════════════════════════════════
+   CLASSY THEME — cream base, pink accent, elegant spacing
+   ═══════════════════════════════════════════ */
+[data-theme="classy"] {
+  background-color: #faf7f2;
+  --spacing: 0.27rem;
+  --radius-xl:  1rem;
+  --radius-2xl: 1.25rem;
+
+  /* Warm cream surfaces */
+  --color-white:      #fffcf7;
+  --color-slate-50:   #faf7f2;
+  --color-slate-100:  #f3ece0;
+  --color-slate-200:  #e8d9c8;
+
+  /* Pink accent replaces indigo */
+  --color-indigo-50:  #fdf2f8;
+  --color-indigo-100: #fce7f3;
+  --color-indigo-200: #fbcfe8;
+  --color-indigo-300: #f9a8d4;
+  --color-indigo-400: #f472b6;
+  --color-indigo-500: #ec4899;
+  --color-indigo-600: #db2777;
+  --color-indigo-700: #be185d;
+  --color-indigo-800: #9d174d;
+  --color-indigo-900: #831843;
+}
+
+[data-theme="classy"] .bg-white    { background-color: #fffcf7; }
+[data-theme="classy"] .bg-slate-50 { background-color: #faf7f2; }
+[data-theme="classy"] .border-slate-200 { border-color: #e8d9c8; }
+[data-theme="classy"] .bg-slate-100 { background-color: #f3ece0; }
+
+/* Elegant card shadow */
+[data-theme="classy"] .rounded-2xl,
+[data-theme="classy"] .rounded-xl {
+  box-shadow: 0 1px 6px 0 rgba(180, 120, 80, 0.08);
+}
