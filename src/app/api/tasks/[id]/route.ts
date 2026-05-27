@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { logActivity } from "@/lib/activity"
 
 export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -44,6 +45,17 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
     },
   })
 
+  if ("completed" in body) {
+    await logActivity(
+      userId,
+      body.completed ? "completed" : "unchecked",
+      "task",
+      task.title,
+    )
+  } else if (canManageAll) {
+    await logActivity(userId, "updated", "task", task.title)
+  }
+
   return NextResponse.json(updated)
 }
 
@@ -51,12 +63,16 @@ export async function DELETE(_req: Request, props: { params: Promise<{ id: strin
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { role } = session.user
+  const { id: userId, role } = session.user
   if (role !== "ADMIN" && role !== "PARENT") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
   const { id } = await props.params
+  const task = await prisma.task.findUnique({ where: { id }, select: { title: true } })
   await prisma.task.delete({ where: { id } })
+
+  if (task) await logActivity(userId, "deleted", "task", task.title)
+
   return NextResponse.json({ ok: true })
 }

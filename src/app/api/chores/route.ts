@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { logActivity } from "@/lib/activity"
 
 export async function GET() {
   const session = await auth()
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { role } = session.user
+  const { id: userId, role } = session.user
   if (role !== "ADMIN" && role !== "PARENT") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
@@ -39,6 +40,8 @@ export async function POST(req: Request) {
     },
     include: { assignee: { select: { id: true, name: true, avatarColor: true } } },
   })
+
+  await logActivity(userId, "created", "chore", chore.title)
 
   return NextResponse.json(chore, { status: 201 })
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { getEvents, createEvent, isConfigured } from "@/lib/google-calendar"
+import { logActivity } from "@/lib/activity"
 
 export async function GET(req: Request) {
   const session = await auth()
@@ -24,12 +25,15 @@ export async function POST(req: Request) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   if (!isConfigured()) return NextResponse.json({ error: "not_configured" }, { status: 503 })
 
-  const { role } = session.user
+  const { id: userId, role } = session.user
   if (role !== "ADMIN" && role !== "PARENT") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
   const body = await req.json()
   const event = await createEvent(body)
+
+  await logActivity(userId, "created", "event", body.summary ?? "Untitled event")
+
   return NextResponse.json(event, { status: 201 })
 }

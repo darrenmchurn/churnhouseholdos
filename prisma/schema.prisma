@@ -43,6 +43,7 @@ model User {
   createdEvents  Event[]
   groceryItems   GroceryItem[]
   announcements  Announcement[]
+  activityLogs   ActivityLog[]
 }
 
 model Task {
@@ -111,6 +112,17 @@ model Announcement {
 
   creatorId String
   creator   User   @relation(fields: [creatorId], references: [id])
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  action      String   // created | completed | deleted | updated | checked_off | unchecked | cleared | posted
+  entity      String   // task | chore | grocery | event | announcement
+  entityTitle String
+  createdAt   DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // Phase 5: smart home settings stored here (HA_URL, HA_TOKEN, etc.)

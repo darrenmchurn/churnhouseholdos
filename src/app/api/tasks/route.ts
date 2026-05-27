@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { logActivity } from "@/lib/activity"
 
 export async function GET() {
   const session = await auth()
@@ -51,6 +52,8 @@ export async function POST(req: Request) {
       creator: { select: { id: true, name: true } },
     },
   })
+
+  await logActivity(creatorId, "created", "task", task.title)
 
   return NextResponse.json(task, { status: 201 })
 }

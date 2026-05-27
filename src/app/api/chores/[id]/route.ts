@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { logActivity } from "@/lib/activity"
 
 export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -18,10 +19,11 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
   }
 
   const body = await req.json()
+  const isEditUpdate = canManageAll && "title" in body
 
   const updated = await prisma.chore.update({
     where: { id },
-    data: canManageAll && "title" in body
+    data: isEditUpdate
       ? {
           ...("title" in body && { title: body.title }),
           ...("frequency" in body && { frequency: body.frequency }),
@@ -33,6 +35,12 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
     include: { assignee: { select: { id: true, name: true, avatarColor: true } } },
   })
 
+  if (!isEditUpdate || ("complete" in body && body.complete)) {
+    await logActivity(userId, "completed", "chore", chore.title)
+  } else {
+    await logActivity(userId, "updated", "chore", chore.title)
+  }
+
   return NextResponse.json(updated)
 }
 
@@ -40,12 +48,16 @@ export async function DELETE(_req: Request, props: { params: Promise<{ id: strin
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { role } = session.user
+  const { id: userId, role } = session.user
   if (role !== "ADMIN" && role !== "PARENT") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
   const { id } = await props.params
+  const chore = await prisma.chore.findUnique({ where: { id }, select: { title: true } })
   await prisma.chore.delete({ where: { id } })
+
+  if (chore) await logActivity(userId, "deleted", "chore", chore.title)
+
   return NextResponse.json({ ok: true })
 }

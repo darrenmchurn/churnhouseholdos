@@ -9,6 +9,7 @@ import {
   Sparkles,
   CalendarDays,
   ShoppingCart,
+  History,
   Settings,
 } from "lucide-react"
 
@@ -25,6 +26,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/chores", label: "Chores", icon: Sparkles },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/grocery", label: "Grocery", icon: ShoppingCart, roles: ["ADMIN", "PARENT", "CHILD"] },
+  { href: "/activity", label: "History", icon: History, roles: ["ADMIN", "PARENT", "CHILD"] },
   { href: "/admin", label: "Admin", icon: Settings, roles: ["ADMIN", "PARENT"] },
 ]
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { logActivity } from "@/lib/activity"
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -11,6 +12,8 @@ export async function PATCH(req: NextRequest, props: Props) {
 
   const { id } = await props.params
   const body = await req.json()
+
+  const existing = await prisma.groceryItem.findUnique({ where: { id }, select: { name: true } })
 
   const item = await prisma.groceryItem.update({
     where: { id },
@@ -23,6 +26,15 @@ export async function PATCH(req: NextRequest, props: Props) {
     include: { addedBy: { select: { name: true, avatarColor: true } } },
   })
 
+  if (typeof body.completed === "boolean" && existing) {
+    await logActivity(
+      session.user.id,
+      body.completed ? "checked_off" : "unchecked",
+      "grocery",
+      existing.name,
+    )
+  }
+
   return NextResponse.json(item)
 }
 
@@ -34,6 +46,10 @@ export async function DELETE(_req: NextRequest, props: Props) {
   }
 
   const { id } = await props.params
+  const item = await prisma.groceryItem.findUnique({ where: { id }, select: { name: true } })
   await prisma.groceryItem.delete({ where: { id } })
+
+  if (item) await logActivity(session.user.id, "deleted", "grocery", item.name)
+
   return NextResponse.json({ ok: true })
 }

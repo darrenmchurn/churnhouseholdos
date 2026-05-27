@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { logActivity } from "@/lib/activity"
 
 export async function GET() {
   const session = await auth()
@@ -32,6 +33,8 @@ export async function POST(req: NextRequest) {
     include: { addedBy: { select: { name: true, avatarColor: true } } },
   })
 
+  await logActivity(session.user.id, "added", "grocery", item.name)
+
   return NextResponse.json(item, { status: 201 })
 }
 
@@ -43,5 +46,7 @@ export async function DELETE() {
   }
 
   await prisma.groceryItem.deleteMany({ where: { completed: true } })
+  await logActivity(session.user.id, "cleared", "grocery", "checked-off items")
+
   return NextResponse.json({ ok: true })
 }
