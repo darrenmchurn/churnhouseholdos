@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { logActivity } from "@/lib/activity"
-import { isConfigured, createEvent } from "@/lib/google-calendar"
+import { isConfigured, createEvent, getMonthCalEvents } from "@/lib/google-calendar"
 
 export async function GET(req: Request) {
   const session = await auth()
@@ -16,6 +16,17 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "timeMin and timeMax required" }, { status: 400 })
   }
 
+  // When GCal is configured, read events from there so existing GCal events are visible
+  if (isConfigured()) {
+    try {
+      const events = await getMonthCalEvents(new Date(timeMin), new Date(timeMax))
+      return NextResponse.json(events)
+    } catch (err) {
+      console.error("GCal GET failed, falling back to Prisma:", err)
+    }
+  }
+
+  // Fallback: read from Prisma
   const events = await prisma.event.findMany({
     where: {
       startDate: {
@@ -27,15 +38,17 @@ export async function GET(req: Request) {
     include: { creator: { select: { name: true } } },
   })
 
-  const serialised = events.map((e) => ({
-    ...e,
+  return NextResponse.json(events.map((e) => ({
+    id:        e.id,
+    gcalId:    e.gcalId ?? undefined,
+    title:     e.title,
+    description: e.description,
     startDate: e.startDate.toISOString(),
-    endDate: e.endDate?.toISOString() ?? null,
-    createdAt: e.createdAt.toISOString(),
-    updatedAt: e.updatedAt.toISOString(),
-  }))
-
-  return NextResponse.json(serialised)
+    endDate:   e.endDate?.toISOString() ?? null,
+    allDay:    e.allDay,
+    color:     e.color,
+    creatorId: e.creatorId,
+  })))
 }
 
 export async function POST(req: Request) {

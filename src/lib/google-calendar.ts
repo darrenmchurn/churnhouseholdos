@@ -1,6 +1,6 @@
-// Google Calendar integration — kept for optional future use.
-// The primary calendar now uses the Prisma Event model.
 import { GoogleAuth } from "google-auth-library"
+import { GCAL_COLORS, DEFAULT_COLOR } from "./calendar-constants"
+import type { CalEvent } from "./calendar-constants"
 
 // Local types — independent of the Prisma-backed calendar types in calendar-constants.ts
 type GCalEvent = {
@@ -138,4 +138,44 @@ export async function deleteEvent(id: string): Promise<void> {
   if (!res.ok && res.status !== 404) {
     throw new Error(`Google Calendar API ${res.status}: ${await res.text()}`)
   }
+}
+
+/** Convert a raw GCal event to the shared CalEvent format used by the UI */
+export function gcalEventToCalEvent(e: GCalEvent): CalEvent {
+  const startIso = e.start.dateTime ?? (e.start.date! + "T12:00:00Z")
+  const endIso   = e.end.dateTime   ?? (e.end.date   ? e.end.date + "T12:00:00Z" : null)
+  return {
+    id:          e.id,   // use GCal ID as primary id when reading from GCal
+    gcalId:      e.id,
+    title:       e.summary,
+    description: e.description ?? null,
+    startDate:   startIso,
+    endDate:     endIso,
+    allDay:      e.allDay,
+    color:       e.colorId ? (GCAL_COLORS[e.colorId] ?? DEFAULT_COLOR) : DEFAULT_COLOR,
+  }
+}
+
+/** Fetch the next N upcoming events from Google Calendar as CalEvent[] */
+export async function getUpcomingCalEvents(limit = 5): Promise<CalEvent[]> {
+  const token = await getAccessToken()
+  const url = new URL(calendarUrl())
+  url.searchParams.set("timeMin", new Date().toISOString())
+  url.searchParams.set("singleEvents", "true")
+  url.searchParams.set("orderBy", "startTime")
+  url.searchParams.set("maxResults", String(limit))
+
+  const res = await fetch(url.toString(), {
+    headers: { Authorization: `Bearer ${token}` },
+    next: { revalidate: 0 },
+  })
+  if (!res.ok) throw new Error(`Google Calendar API ${res.status}: ${await res.text()}`)
+  const data = await res.json() as { items?: Record<string, unknown>[] }
+  return (data.items ?? []).map(normalizeEvent).map(gcalEventToCalEvent)
+}
+
+/** Fetch events for a month range from Google Calendar as CalEvent[] */
+export async function getMonthCalEvents(timeMin: Date, timeMax: Date): Promise<CalEvent[]> {
+  const events = await getEvents(timeMin, timeMax)
+  return events.map(gcalEventToCalEvent)
 }

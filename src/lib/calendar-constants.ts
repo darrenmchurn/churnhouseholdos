@@ -2,7 +2,8 @@
 
 /** Internal Prisma-backed calendar event (dates serialised to ISO strings for the client) */
 export type CalEvent = {
-  id: string
+  id: string          // Prisma cuid OR GCal event ID when read directly from GCal
+  gcalId?: string     // GCal event ID — present when synced to / read from GCal
   title: string
   description?: string | null
   startDate: string   // ISO string

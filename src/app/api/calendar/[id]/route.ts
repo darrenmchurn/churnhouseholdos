@@ -57,21 +57,33 @@ export async function DELETE(_req: Request, props: { params: Promise<{ id: strin
   }
 
   const { id } = await props.params
-  const event = await prisma.event.findUnique({ where: { id } })
 
-  // Delete from Prisma
-  await prisma.event.delete({ where: { id } })
-
-  // Fire-and-forget: also delete from Google Calendar if synced
-  if (event?.gcalId && isConfigured()) {
-    try {
-      await deleteEvent(event.gcalId)
-    } catch (err) {
-      console.error("Google Calendar delete sync failed:", err)
-    }
+  // Try to find by Prisma ID first, then by gcalId
+  // (When GCal is the source, the event id coming from the UI is the GCal event ID)
+  let event = await prisma.event.findUnique({ where: { id } })
+  if (!event) {
+    event = await prisma.event.findFirst({ where: { gcalId: id } })
   }
 
-  await logActivity(userId, "deleted", "event", event?.title ?? "calendar event")
+  if (event) {
+    await prisma.event.delete({ where: { id: event.id } })
+    // Also remove from GCal if synced
+    if (event.gcalId && isConfigured()) {
+      try { await deleteEvent(event.gcalId) } catch (err) {
+        console.error("GCal delete sync failed:", err)
+      }
+    }
+    await logActivity(userId, "deleted", "event", event.title)
+  } else if (isConfigured()) {
+    // Event exists only in GCal (created outside the app) — delete directly
+    try {
+      await deleteEvent(id)
+      await logActivity(userId, "deleted", "event", "calendar event")
+    } catch (err) {
+      console.error("GCal-only delete failed:", err)
+      return NextResponse.json({ error: "Delete failed" }, { status: 500 })
+    }
+  }
 
   return NextResponse.json({ ok: true })
 }

@@ -4,6 +4,8 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { formatDate } from "@/lib/utils"
 import { signOut } from "@/lib/auth"
+import { isConfigured, getUpcomingCalEvents } from "@/lib/google-calendar"
+import type { CalEvent } from "@/lib/calendar-constants"
 import {
   CheckSquare,
   Sparkles,
@@ -26,7 +28,7 @@ export default async function DashboardPage() {
   const isKiosk = role === "KIOSK"
   const canSeeAll = isAdmin || isParent
 
-  const [taskCount, choreCount, eventCount, groceryCount, announcements, upcomingEvents] =
+  const [taskCount, choreCount, eventCount, groceryCount, announcements] =
     await Promise.all([
       prisma.task.count({
         where: {
@@ -38,9 +40,7 @@ export default async function DashboardPage() {
         where: canSeeAll ? {} : { assigneeId: userId },
       }),
       prisma.event.count({
-        where: {
-          startDate: { gte: todayStart, lte: todayEnd },
-        },
+        where: { startDate: { gte: todayStart, lte: todayEnd } },
       }),
       prisma.groceryItem.count({
         where: { completed: false },
@@ -52,19 +52,47 @@ export default async function DashboardPage() {
         orderBy: { createdAt: "desc" },
         take: 3,
       }),
-      prisma.event.findMany({
-        // Use start-of-today so all-day events don't vanish once the day has begun
-        where: { startDate: { gte: todayStart } },
-        orderBy: { startDate: "asc" },
-        take: 5,
-        include: { creator: { select: { name: true } } },
-      }),
     ])
 
+  // Fetch upcoming events — prefer GCal (shows all family events) with a
+  // 3-second timeout, falling back to Prisma if GCal is slow or unconfigured
+  let upcomingEvents: CalEvent[] = []
+  if (isConfigured()) {
+    try {
+      upcomingEvents = await Promise.race([
+        getUpcomingCalEvents(5),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("GCal timeout")), 3000)
+        ),
+      ])
+    } catch {
+      // GCal failed or timed out — fall back to Prisma
+    }
+  }
+
+  if (upcomingEvents.length === 0) {
+    const prismaEvents = await prisma.event.findMany({
+      where: { startDate: { gte: todayStart } },
+      orderBy: { startDate: "asc" },
+      take: 5,
+      include: { creator: { select: { name: true } } },
+    })
+    upcomingEvents = prismaEvents.map((e) => ({
+      id:        e.id,
+      gcalId:    e.gcalId ?? undefined,
+      title:     e.title,
+      description: e.description,
+      startDate: e.startDate.toISOString(),
+      endDate:   e.endDate?.toISOString() ?? null,
+      allDay:    e.allDay,
+      color:     e.color,
+    }))
+  }
+
   const stats = [
-    { label: "Open Tasks", value: taskCount, icon: CheckSquare, color: "bg-blue-50 text-blue-600", href: "/tasks" },
-    { label: "Chores", value: choreCount, icon: Sparkles, color: "bg-yellow-50 text-yellow-600", href: "/chores" },
-    { label: "Events Today", value: eventCount, icon: CalendarDays, color: "bg-green-50 text-green-600", href: "/calendar" },
+    { label: "Open Tasks",    value: taskCount,    icon: CheckSquare,  color: "bg-blue-50 text-blue-600",   href: "/tasks" },
+    { label: "Chores",        value: choreCount,   icon: Sparkles,     color: "bg-yellow-50 text-yellow-600", href: "/chores" },
+    { label: "Events Today",  value: eventCount,   icon: CalendarDays, color: "bg-green-50 text-green-600",  href: "/calendar" },
     ...(canSeeAll ? [{ label: "Grocery Items", value: groceryCount, icon: ShoppingCart, color: "bg-pink-50 text-pink-600", href: "/grocery" }] : []),
   ]
 
@@ -155,7 +183,7 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <div className="space-y-2">
-            {upcomingEvents.map((event: { id: string; title: string; startDate: Date; allDay: boolean; color: string }) => (
+            {upcomingEvents.map((event) => (
               <div key={event.id} className="bg-white rounded-2xl border border-slate-200 p-4 flex items-center gap-3">
                 <div
                   className="w-2 self-stretch rounded-full flex-shrink-0"
