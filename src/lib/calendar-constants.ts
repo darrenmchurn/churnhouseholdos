@@ -1,21 +1,25 @@
 // Shared calendar types and constants — no Node.js dependencies, safe to import in client components
 
-export type GCalEvent = {
+/** Internal Prisma-backed calendar event (dates serialised to ISO strings for the client) */
+export type CalEvent = {
   id: string
-  summary: string
-  description?: string
-  colorId?: string
-  start: { dateTime?: string; date?: string }
-  end: { dateTime?: string; date?: string }
+  title: string
+  description?: string | null
+  startDate: string   // ISO string
+  endDate?: string | null
   allDay: boolean
+  color: string
+  creatorId?: string
+  creator?: { name: string }
 }
 
+/** Shape POSTed / PATCHed to /api/calendar */
 export type CreateEventInput = {
-  summary: string
+  title: string
   description?: string
-  colorId?: string
-  start: string
-  end: string
+  color?: string
+  startDate: string   // ISO string  (date only "YYYY-MM-DD" for allDay)
+  endDate?: string
   allDay: boolean
 }
 

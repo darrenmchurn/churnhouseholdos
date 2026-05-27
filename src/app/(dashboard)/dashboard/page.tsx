@@ -53,7 +53,8 @@ export default async function DashboardPage() {
         take: 3,
       }),
       prisma.event.findMany({
-        where: { startDate: { gte: new Date() } },
+        // Use start-of-today so all-day events don't vanish once the day has begun
+        where: { startDate: { gte: todayStart } },
         orderBy: { startDate: "asc" },
         take: 5,
         include: { creator: { select: { name: true } } },

@@ -4,12 +4,14 @@ import { useState } from "react"
 import { Modal } from "@/components/Modal"
 import { GCAL_COLORS } from "@/lib/calendar-constants"
 
-const COLOR_OPTIONS = Object.entries(GCAL_COLORS).map(([id, hex]) => ({ id, hex }))
+// Reuse the same colour palette as before — nice set of 11 colours
+const COLOR_OPTIONS = Object.entries(GCAL_COLORS).map(([, hex]) => hex)
 
 const COLOR_NAMES: Record<string, string> = {
-  "1": "Tomato", "2": "Flamingo", "3": "Tangerine", "4": "Banana",
-  "5": "Sage", "6": "Basil", "7": "Peacock", "8": "Blueberry",
-  "9": "Lavender", "10": "Grape", "11": "Graphite",
+  "#ef4444": "Tomato",   "#f97316": "Flamingo",  "#f59e0b": "Tangerine",
+  "#eab308": "Banana",   "#84cc16": "Sage",       "#16a34a": "Basil",
+  "#0d9488": "Peacock",  "#3b82f6": "Blueberry",  "#a78bfa": "Lavender",
+  "#9333ea": "Grape",    "#6b7280": "Graphite",
 }
 
 type Props = {
@@ -22,9 +24,9 @@ export function EventForm({ defaultDate, onCreated }: Props) {
   const [loading, setLoading] = useState(false)
   const [allDay, setAllDay] = useState(true)
   const [form, setForm] = useState({
-    summary: "",
+    title: "",
     description: "",
-    colorId: "8",
+    color: "#3b82f6",   // Blueberry default
     date: defaultDate,
     startTime: "09:00",
     endTime: "10:00",
@@ -38,27 +40,25 @@ export function EventForm({ defaultDate, onCreated }: Props) {
     e.preventDefault()
     setLoading(true)
 
-    const start = allDay ? form.date : `${form.date}T${form.startTime}:00`
-    const end = allDay
-      ? form.date
-      : `${form.date}T${form.endTime}:00`
+    const startDate = allDay ? form.date : `${form.date}T${form.startTime}:00`
+    const endDate   = allDay ? form.date : `${form.date}T${form.endTime}:00`
 
     await fetch("/api/calendar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        summary: form.summary,
+        title: form.title,
         description: form.description || undefined,
-        colorId: form.colorId,
-        start,
-        end,
+        color: form.color,
+        startDate,
+        endDate,
         allDay,
       }),
     })
 
     setLoading(false)
     setOpen(false)
-    setForm({ summary: "", description: "", colorId: "8", date: form.date, startTime: "09:00", endTime: "10:00" })
+    setForm((f) => ({ ...f, title: "", description: "", startTime: "09:00", endTime: "10:00" }))
     onCreated()
   }
 
@@ -73,19 +73,20 @@ export function EventForm({ defaultDate, onCreated }: Props) {
 
       <Modal open={open} onClose={() => setOpen(false)} title="New Event">
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Title */}
           <div>
             <label className="text-xs font-medium text-slate-600 block mb-1">Title *</label>
             <input
               required
               autoFocus
-              value={form.summary}
-              onChange={(e) => set("summary", e.target.value)}
+              value={form.title}
+              onChange={(e) => set("title", e.target.value)}
               className="w-full h-11 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="Event name"
             />
           </div>
 
-          {/* All day toggle */}
+          {/* All-day toggle */}
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -97,6 +98,7 @@ export function EventForm({ defaultDate, onCreated }: Props) {
             <span className="text-sm text-slate-700">All-day event</span>
           </div>
 
+          {/* Date / time */}
           <div className={`grid gap-3 ${allDay ? "grid-cols-1" : "grid-cols-3"}`}>
             <div>
               <label className="text-xs font-medium text-slate-600 block mb-1">Date</label>
@@ -132,22 +134,24 @@ export function EventForm({ defaultDate, onCreated }: Props) {
             )}
           </div>
 
+          {/* Colour picker */}
           <div>
             <label className="text-xs font-medium text-slate-600 block mb-2">Color</label>
             <div className="flex gap-2 flex-wrap">
-              {COLOR_OPTIONS.map(({ id, hex }) => (
+              {COLOR_OPTIONS.map((hex) => (
                 <button
-                  key={id}
+                  key={hex}
                   type="button"
-                  title={COLOR_NAMES[id]}
-                  onClick={() => set("colorId", id)}
-                  className={`w-7 h-7 rounded-full transition-transform ${form.colorId === id ? "scale-125 ring-2 ring-offset-1 ring-slate-400" : ""}`}
+                  title={COLOR_NAMES[hex] ?? hex}
+                  onClick={() => set("color", hex)}
+                  className={`w-7 h-7 rounded-full transition-transform ${form.color === hex ? "scale-125 ring-2 ring-offset-1 ring-slate-400" : ""}`}
                   style={{ backgroundColor: hex }}
                 />
               ))}
             </div>
           </div>
 
+          {/* Notes */}
           <div>
             <label className="text-xs font-medium text-slate-600 block mb-1">Notes</label>
             <textarea
@@ -161,7 +165,7 @@ export function EventForm({ defaultDate, onCreated }: Props) {
 
           <button
             type="submit"
-            disabled={loading || !form.summary.trim()}
+            disabled={loading || !form.title.trim()}
             className="w-full h-11 rounded-xl bg-indigo-600 text-white font-semibold text-sm disabled:opacity-50"
           >
             {loading ? "Adding…" : "Add to Calendar"}

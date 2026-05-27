@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
-import { updateEvent, deleteEvent, isConfigured } from "@/lib/google-calendar"
+import { prisma } from "@/lib/prisma"
 import { logActivity } from "@/lib/activity"
 
 export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  if (!isConfigured()) return NextResponse.json({ error: "not_configured" }, { status: 503 })
 
   const { id: userId, role } = session.user
   if (role !== "ADMIN" && role !== "PARENT") {
@@ -15,17 +14,43 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
 
   const { id } = await props.params
   const body = await req.json()
-  const event = await updateEvent(id, body)
+  const { title, description, color, startDate, endDate, allDay } = body
 
-  await logActivity(userId, "updated", "event", body.summary ?? "calendar event")
+  const event = await prisma.event.update({
+    where: { id },
+    data: {
+      ...(title !== undefined && { title }),
+      ...(description !== undefined && { description }),
+      ...(color !== undefined && { color }),
+      ...(startDate !== undefined && {
+        startDate: allDay ? new Date(startDate + "T12:00:00Z") : new Date(startDate),
+      }),
+      ...(endDate !== undefined && {
+        endDate: endDate
+          ? allDay
+            ? new Date(endDate + "T12:00:00Z")
+            : new Date(endDate)
+          : null,
+      }),
+      ...(allDay !== undefined && { allDay }),
+    },
+    include: { creator: { select: { name: true } } },
+  })
 
-  return NextResponse.json(event)
+  await logActivity(userId, "updated", "event", event.title)
+
+  return NextResponse.json({
+    ...event,
+    startDate: event.startDate.toISOString(),
+    endDate: event.endDate?.toISOString() ?? null,
+    createdAt: event.createdAt.toISOString(),
+    updatedAt: event.updatedAt.toISOString(),
+  })
 }
 
 export async function DELETE(_req: Request, props: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  if (!isConfigured()) return NextResponse.json({ error: "not_configured" }, { status: 503 })
 
   const { id: userId, role } = session.user
   if (role !== "ADMIN" && role !== "PARENT") {
@@ -33,9 +58,10 @@ export async function DELETE(_req: Request, props: { params: Promise<{ id: strin
   }
 
   const { id } = await props.params
-  await deleteEvent(id)
+  const event = await prisma.event.findUnique({ where: { id } })
+  await prisma.event.delete({ where: { id } })
 
-  await logActivity(userId, "deleted", "event", "calendar event")
+  await logActivity(userId, "deleted", "event", event?.title ?? "calendar event")
 
   return NextResponse.json({ ok: true })
 }

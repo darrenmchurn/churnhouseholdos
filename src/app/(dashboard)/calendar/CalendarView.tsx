@@ -3,26 +3,23 @@
 import { useState, useCallback } from "react"
 import { ChevronLeft, ChevronRight, Trash2, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { GCAL_COLORS, DEFAULT_COLOR } from "@/lib/calendar-constants"
-import type { GCalEvent } from "@/lib/calendar-constants"
+import type { CalEvent } from "@/lib/calendar-constants"
 import { EventForm } from "./EventForm"
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"]
 
-function eventColor(e: GCalEvent): string {
-  return e.colorId ? (GCAL_COLORS[e.colorId] ?? DEFAULT_COLOR) : DEFAULT_COLOR
+function eventDateKey(e: CalEvent): string {
+  // For all-day events stored at noon UTC, slice just the date portion
+  return e.startDate.slice(0, 10)
 }
 
-function eventStartDate(e: GCalEvent): string {
-  return (e.start.date ?? e.start.dateTime ?? "").slice(0, 10)
-}
-
-function formatEventTime(e: GCalEvent): string {
+function formatEventTime(e: CalEvent): string {
   if (e.allDay) return "All day"
-  const dt = e.start.dateTime
-  if (!dt) return ""
-  return new Date(dt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+  return new Date(e.startDate).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  })
 }
 
 export function CalendarView({
@@ -32,15 +29,15 @@ export function CalendarView({
   today,
   canManage,
 }: {
-  initialEvents: GCalEvent[]
+  initialEvents: CalEvent[]
   initialYear: number
   initialMonth: number
   today: string
   canManage: boolean
 }) {
   const [year, setYear] = useState(initialYear)
-  const [month, setMonth] = useState(initialMonth) // 0-indexed
-  const [events, setEvents] = useState<GCalEvent[]>(initialEvents)
+  const [month, setMonth] = useState(initialMonth)
+  const [events, setEvents] = useState<CalEvent[]>(initialEvents)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
 
@@ -48,10 +45,7 @@ export function CalendarView({
     const timeMin = new Date(y, m, 1).toISOString()
     const timeMax = new Date(y, m + 1, 0, 23, 59, 59).toISOString()
     const res = await fetch(`/api/calendar?timeMin=${timeMin}&timeMax=${timeMax}`)
-    if (res.ok) {
-      const data = await res.json()
-      setEvents(data)
-    }
+    if (res.ok) setEvents(await res.json())
   }, [])
 
   function prevMonth() {
@@ -93,10 +87,10 @@ export function CalendarView({
     cells.push({ day: d, dateStr })
   }
 
-  // Events indexed by date string
-  const eventsByDate: Record<string, GCalEvent[]> = {}
+  // Index events by date key
+  const eventsByDate: Record<string, CalEvent[]> = {}
   for (const e of events) {
-    const d = eventStartDate(e)
+    const d = eventDateKey(e)
     if (!eventsByDate[d]) eventsByDate[d] = []
     eventsByDate[d].push(e)
   }
@@ -107,7 +101,10 @@ export function CalendarView({
     <div className="space-y-4">
       {/* Month navigation */}
       <div className="flex items-center gap-2">
-        <button onClick={prevMonth} className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-600">
+        <button
+          onClick={prevMonth}
+          className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-600"
+        >
           <ChevronLeft size={18} />
         </button>
         <div className="flex-1 text-center">
@@ -116,10 +113,16 @@ export function CalendarView({
             {events.length} event{events.length !== 1 ? "s" : ""}
           </p>
         </div>
-        <button onClick={goToday} className="h-9 px-3 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-medium">
+        <button
+          onClick={goToday}
+          className="h-9 px-3 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-medium"
+        >
           Today
         </button>
-        <button onClick={nextMonth} className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-600">
+        <button
+          onClick={nextMonth}
+          className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-600"
+        >
           <ChevronRight size={18} />
         </button>
       </div>
@@ -157,13 +160,12 @@ export function CalendarView({
               )}>
                 {cell.day}
               </span>
-              {/* Event dots — show up to 3 */}
               <div className="flex gap-0.5">
                 {dayEvents.slice(0, 3).map((e) => (
                   <span
                     key={e.id}
                     className="w-1.5 h-1.5 rounded-full"
-                    style={{ backgroundColor: eventColor(e) }}
+                    style={{ backgroundColor: e.color }}
                   />
                 ))}
               </div>
@@ -178,7 +180,7 @@ export function CalendarView({
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
             <h3 className="font-semibold text-slate-900 text-sm">
               {new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", {
-                weekday: "long", month: "long", day: "numeric"
+                weekday: "long", month: "long", day: "numeric",
               })}
             </h3>
             {canManage && (
@@ -188,6 +190,7 @@ export function CalendarView({
               />
             )}
           </div>
+
           {selectedEvents.length === 0 ? (
             <p className="px-4 py-4 text-sm text-slate-400">No events this day.</p>
           ) : (
@@ -196,16 +199,19 @@ export function CalendarView({
                 <div key={e.id} className="px-4 py-3 flex items-center gap-3">
                   <div
                     className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: eventColor(e) }}
+                    style={{ backgroundColor: e.color }}
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-900 text-sm truncate">{e.summary}</p>
+                    <p className="font-medium text-slate-900 text-sm truncate">{e.title}</p>
                     <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
                       <Clock size={11} />
                       {formatEventTime(e)}
                     </p>
                     {e.description && (
                       <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{e.description}</p>
+                    )}
+                    {e.creator && (
+                      <p className="text-xs text-slate-400 mt-0.5">Added by {e.creator.name}</p>
                     )}
                   </div>
                   {canManage && (
@@ -224,7 +230,7 @@ export function CalendarView({
         </div>
       )}
 
-      {/* Header add button (when no date selected) */}
+      {/* Add button when no date is selected */}
       {!selectedDate && canManage && (
         <div className="flex justify-end">
           <EventForm
@@ -233,7 +239,6 @@ export function CalendarView({
           />
         </div>
       )}
-
     </div>
   )
 }

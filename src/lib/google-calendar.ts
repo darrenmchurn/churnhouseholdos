@@ -1,7 +1,28 @@
+// Google Calendar integration — kept for optional future use.
+// The primary calendar now uses the Prisma Event model.
 import { GoogleAuth } from "google-auth-library"
-export type { GCalEvent, CreateEventInput } from "./calendar-constants"
-import type { GCalEvent, CreateEventInput } from "./calendar-constants"
-export { GCAL_COLORS, DEFAULT_COLOR } from "./calendar-constants"
+
+// Local types — independent of the Prisma-backed calendar types in calendar-constants.ts
+type GCalEvent = {
+  id: string
+  summary: string
+  description?: string
+  colorId?: string
+  start: { dateTime?: string; date?: string }
+  end: { dateTime?: string; date?: string }
+  allDay: boolean
+}
+
+type CreateEventInput = {
+  summary: string
+  description?: string
+  colorId?: string
+  start: string
+  end: string
+  allDay: boolean
+}
+
+export type { GCalEvent, CreateEventInput }
 
 const SCOPES = ["https://www.googleapis.com/auth/calendar"]
 
