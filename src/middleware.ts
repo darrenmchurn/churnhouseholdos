@@ -1,10 +1,10 @@
-import { getToken } from "next-auth/jwt"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Always allow auth endpoints, static files, and setup
   if (
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/setup") ||
@@ -15,17 +15,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  const token = await getToken({
-    req: request,
-    secret: process.env.AUTH_SECRET,
-  })
-  const isLoggedIn = !!token
+  // NextAuth v5 uses "authjs" cookie prefix (not "next-auth")
+  // Production HTTPS uses the __Secure- prefix; dev HTTP does not
+  const sessionCookie =
+    request.cookies.get("__Secure-authjs.session-token") ??
+    request.cookies.get("authjs.session-token")
+
+  const isLoggedIn = !!sessionCookie
   const isLoginPage = pathname.startsWith("/login")
 
+  // Not logged in and trying to access a protected page → send to login
   if (!isLoggedIn && !isLoginPage) {
     return NextResponse.redirect(new URL("/login", request.url))
   }
 
+  // Already logged in but on the login page → send to dashboard
   if (isLoggedIn && isLoginPage) {
     return NextResponse.redirect(new URL("/dashboard", request.url))
   }
