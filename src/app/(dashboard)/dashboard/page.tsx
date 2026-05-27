@@ -74,7 +74,7 @@ export default async function DashboardPage() {
         <div>
           <p className="text-sm text-slate-500">{formatDate(new Date())}</p>
           <h1 className="text-2xl font-bold text-slate-900 mt-0.5">
-            {isKiosk ? "Family Hub" : `Hey, ${name}!`}
+            {isKiosk ? "Churn Household OS" : `Hey, ${name}!`}
           </h1>
         </div>
         <div className="flex items-center gap-3">

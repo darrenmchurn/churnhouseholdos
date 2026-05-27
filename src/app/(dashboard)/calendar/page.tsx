@@ -46,7 +46,7 @@ export default async function CalendarPage() {
             </li>
             <li className="flex gap-2">
               <span className="flex-shrink-0 w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center">5</span>
-              <span>Go to <strong>calendar.google.com</strong> → create a new calendar called <em>Family Hub</em></span>
+              <span>Go to <strong>calendar.google.com</strong> → create a new calendar called <em>Churn Household OS</em></span>
             </li>
             <li className="flex gap-2">
               <span className="flex-shrink-0 w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center">6</span>
@@ -81,10 +81,11 @@ export default async function CalendarPage() {
   const timeMax = new Date(year, month + 1, 0, 23, 59, 59)
 
   let events: Awaited<ReturnType<typeof getEvents>> = []
+  let calendarError: string | null = null
   try {
     events = await getEvents(timeMin, timeMax)
-  } catch {
-    // silently return empty on error — misconfigured keys show setup guide above
+  } catch (err) {
+    calendarError = err instanceof Error ? err.message : String(err)
   }
 
   return (
@@ -92,14 +93,21 @@ export default async function CalendarPage() {
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Calendar</h1>
-          <p className="text-slate-500 text-sm mt-0.5">{events.length} events this month</p>
         </div>
       </div>
+
+      {calendarError && (
+        <div className="mb-4 bg-red-50 border border-red-200 rounded-2xl p-4 text-sm text-red-700">
+          <p className="font-semibold mb-1">Calendar connection error:</p>
+          <p className="font-mono text-xs break-all">{calendarError}</p>
+        </div>
+      )}
 
       <CalendarView
         initialEvents={events}
         initialYear={year}
         initialMonth={month}
+        today={now.toISOString().slice(0, 10)}
         canManage={canManage}
       />
     </div>

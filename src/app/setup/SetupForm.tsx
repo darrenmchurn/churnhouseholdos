@@ -177,7 +177,7 @@ export function SetupForm() {
         disabled={loading}
         className="w-full h-12 rounded-xl bg-indigo-600 text-white font-semibold text-base disabled:opacity-50"
       >
-        {loading ? "Creating accounts…" : "Create Family Hub"}
+        {loading ? "Creating accounts…" : "Create Churn Household OS"}
       </button>
     </form>
   )

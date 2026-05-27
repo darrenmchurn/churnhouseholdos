@@ -13,7 +13,7 @@ const COLOR_NAMES: Record<string, string> = {
 }
 
 type Props = {
-  defaultDate?: string
+  defaultDate: string
   onCreated: () => void
 }
 
@@ -25,7 +25,7 @@ export function EventForm({ defaultDate, onCreated }: Props) {
     summary: "",
     description: "",
     colorId: "8",
-    date: defaultDate ?? new Date().toISOString().slice(0, 10),
+    date: defaultDate,
     startTime: "09:00",
     endTime: "10:00",
   })

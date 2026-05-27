@@ -15,8 +15,8 @@ export default async function SetupPage() {
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-indigo-600 shadow-lg mb-4">
             <span className="text-4xl">🏠</span>
           </div>
-          <h1 className="text-3xl font-bold text-slate-900">Welcome to Family Hub</h1>
-          <p className="text-slate-500 mt-1">Let&apos;s set up your family</p>
+          <h1 className="text-3xl font-bold text-slate-900">Welcome to Churn Household OS</h1>
+          <p className="text-slate-500 mt-1">Let&apos;s set up your household</p>
         </div>
         <SetupForm />
       </div>

@@ -29,11 +29,13 @@ export function CalendarView({
   initialEvents,
   initialYear,
   initialMonth,
+  today,
   canManage,
 }: {
   initialEvents: GCalEvent[]
   initialYear: number
   initialMonth: number
+  today: string
   canManage: boolean
 }) {
   const [year, setYear] = useState(initialYear)
@@ -67,10 +69,10 @@ export function CalendarView({
   }
 
   function goToday() {
-    const now = new Date()
-    setYear(now.getFullYear()); setMonth(now.getMonth())
-    setSelectedDate(now.toISOString().slice(0, 10))
-    fetchEvents(now.getFullYear(), now.getMonth())
+    const [y, m] = today.split("-").map(Number)
+    setYear(y); setMonth(m - 1)
+    setSelectedDate(today)
+    fetchEvents(y, m - 1)
   }
 
   async function handleDelete(id: string) {
@@ -83,7 +85,6 @@ export function CalendarView({
   // Build month grid
   const firstDay = new Date(year, month, 1).getDay()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const today = new Date().toISOString().slice(0, 10)
 
   const cells: Array<{ day: number | null; dateStr: string | null }> = []
   for (let i = 0; i < firstDay; i++) cells.push({ day: null, dateStr: null })
@@ -111,6 +112,9 @@ export function CalendarView({
         </button>
         <div className="flex-1 text-center">
           <h2 className="font-bold text-slate-900">{MONTHS[month]} {year}</h2>
+          <p className="text-xs text-slate-400 mt-0.5">
+            {events.length} event{events.length !== 1 ? "s" : ""}
+          </p>
         </div>
         <button onClick={goToday} className="h-9 px-3 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-medium">
           Today
@@ -179,7 +183,7 @@ export function CalendarView({
             </h3>
             {canManage && (
               <EventForm
-                defaultDate={selectedDate}
+                defaultDate={selectedDate ?? today}
                 onCreated={() => fetchEvents(year, month)}
               />
             )}
@@ -229,6 +233,7 @@ export function CalendarView({
           />
         </div>
       )}
+
     </div>
   )
 }

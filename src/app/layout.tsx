@@ -6,12 +6,12 @@ import "./globals.css"
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist-sans" })
 
 export const metadata: Metadata = {
-  title: "Family Hub",
-  description: "Your family, organized.",
+  title: "Churn Household OS",
+  description: "The operating system for the Churn household.",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Family Hub",
+    title: "Churn HOS",
   },
 }
 
