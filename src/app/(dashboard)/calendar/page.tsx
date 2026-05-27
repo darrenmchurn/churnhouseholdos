@@ -3,7 +3,9 @@ export const dynamic = "force-dynamic"
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
+import { isConfigured } from "@/lib/google-calendar"
 import { CalendarView } from "./CalendarView"
+import { GcalStatusBanner } from "./GcalStatusBanner"
 
 export default async function CalendarPage() {
   const session = await auth()
@@ -31,11 +33,16 @@ export default async function CalendarPage() {
     updatedAt: e.updatedAt.toISOString(),
   }))
 
+  const gcalConfigured = isConfigured()
+
   return (
     <div className="px-4 pt-6 pb-4 max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold text-slate-900">Calendar</h1>
       </div>
+
+      {/* Google Calendar connection status — shown to admins/parents only */}
+      {canManage && <GcalStatusBanner configured={gcalConfigured} />}
 
       <CalendarView
         initialEvents={serialised}
