@@ -85,6 +85,7 @@ model Event {
   endDate     DateTime?
   allDay      Boolean   @default(false)
   color       String    @default("#6366f1")
+  gcalId      String?   // Google Calendar event ID, set when GCal sync is configured
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 

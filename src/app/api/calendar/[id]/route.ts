@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { logActivity } from "@/lib/activity"
+import { isConfigured, deleteEvent } from "@/lib/google-calendar"
 
 export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -27,9 +28,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
       }),
       ...(endDate !== undefined && {
         endDate: endDate
-          ? allDay
-            ? new Date(endDate + "T12:00:00Z")
-            : new Date(endDate)
+          ? allDay ? new Date(endDate + "T12:00:00Z") : new Date(endDate)
           : null,
       }),
       ...(allDay !== undefined && { allDay }),
@@ -59,7 +58,18 @@ export async function DELETE(_req: Request, props: { params: Promise<{ id: strin
 
   const { id } = await props.params
   const event = await prisma.event.findUnique({ where: { id } })
+
+  // Delete from Prisma
   await prisma.event.delete({ where: { id } })
+
+  // Fire-and-forget: also delete from Google Calendar if synced
+  if (event?.gcalId && isConfigured()) {
+    try {
+      await deleteEvent(event.gcalId)
+    } catch (err) {
+      console.error("Google Calendar delete sync failed:", err)
+    }
+  }
 
   await logActivity(userId, "deleted", "event", event?.title ?? "calendar event")
 

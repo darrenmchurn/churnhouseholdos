@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { logActivity } from "@/lib/activity"
+import { isConfigured, createEvent } from "@/lib/google-calendar"
 
 export async function GET(req: Request) {
   const session = await auth()
@@ -26,7 +27,6 @@ export async function GET(req: Request) {
     include: { creator: { select: { name: true } } },
   })
 
-  // Serialise Dates to ISO strings for the client
   const serialised = events.map((e) => ({
     ...e,
     startDate: e.startDate.toISOString(),
@@ -50,16 +50,14 @@ export async function POST(req: Request) {
   const body = await req.json()
   const { title, description, color, startDate, endDate, allDay } = body
 
+  // 1. Always save to Prisma first
   const event = await prisma.event.create({
     data: {
       title,
       description: description || null,
-      // All-day events: treat the date string as noon UTC to avoid timezone day-shift
       startDate: allDay ? new Date(startDate + "T12:00:00Z") : new Date(startDate),
       endDate: endDate
-        ? allDay
-          ? new Date(endDate + "T12:00:00Z")
-          : new Date(endDate)
+        ? allDay ? new Date(endDate + "T12:00:00Z") : new Date(endDate)
         : null,
       allDay: !!allDay,
       color: color || "#6366f1",
@@ -67,6 +65,27 @@ export async function POST(req: Request) {
     },
     include: { creator: { select: { name: true } } },
   })
+
+  // 2. Fire-and-forget sync to Google Calendar if configured
+  if (isConfigured()) {
+    try {
+      const gcalEvent = await createEvent({
+        summary: title,
+        description: description || undefined,
+        start: allDay ? startDate : `${startDate}`,
+        end: allDay ? (endDate || startDate) : `${endDate || startDate}`,
+        allDay,
+      })
+      // Store the GCal ID so we can delete it later
+      await prisma.event.update({
+        where: { id: event.id },
+        data: { gcalId: gcalEvent.id },
+      })
+    } catch (err) {
+      // Non-fatal — event is already saved to Prisma
+      console.error("Google Calendar sync failed:", err)
+    }
+  }
 
   await logActivity(userId, "created", "event", title ?? "Untitled event")
 
