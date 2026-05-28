@@ -32,6 +32,28 @@ export default async function AdminPage() {
         <p className="text-slate-500 text-sm mt-0.5">Manage your household</p>
       </div>
 
+      {/* Announcements */}
+      <section>
+        <h2 className="text-base font-semibold text-slate-700 mb-3">Announcements</h2>
+        <AnnouncementManager
+          announcements={announcements.map((a) => ({
+            ...a,
+            expiresAt: a.expiresAt ? a.expiresAt.toISOString() : null,
+            createdAt: a.createdAt.toISOString(),
+          }))}
+        />
+      </section>
+
+      {/* Family Members */}
+      <section>
+        <h2 className="text-base font-semibold text-slate-700 mb-3">Family Members</h2>
+        <UserList
+          users={users.map((u) => ({ ...u, createdAt: u.createdAt.toISOString() }))}
+          currentUserId={session.user.id}
+          isAdmin={isAdmin}
+        />
+      </section>
+
       {/* How everything works */}
       <section>
         <h2 className="text-base font-semibold text-slate-700 mb-3">How It Works</h2>
@@ -102,28 +124,6 @@ export default async function AdminPage() {
           </div>
 
         </div>
-      </section>
-
-      {/* Family Members */}
-      <section>
-        <h2 className="text-base font-semibold text-slate-700 mb-3">Family Members</h2>
-        <UserList
-          users={users.map((u) => ({ ...u, createdAt: u.createdAt.toISOString() }))}
-          currentUserId={session.user.id}
-          isAdmin={isAdmin}
-        />
-      </section>
-
-      {/* Announcements */}
-      <section>
-        <h2 className="text-base font-semibold text-slate-700 mb-3">Announcements</h2>
-        <AnnouncementManager
-          announcements={announcements.map((a) => ({
-            ...a,
-            expiresAt: a.expiresAt ? a.expiresAt.toISOString() : null,
-            createdAt: a.createdAt.toISOString(),
-          }))}
-        />
       </section>
     </div>
   )
