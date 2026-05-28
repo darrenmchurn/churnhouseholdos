@@ -19,20 +19,29 @@ export function AnnouncementManager({ announcements }: { announcements: Announce
   const [showForm, setShowForm] = useState(false)
   const [title, setTitle] = useState("")
   const [body, setBody] = useState("")
-  const [expiresAt, setExpiresAt] = useState("")
+  const [expiresDate, setExpiresDate] = useState("")
+  const [expiresTime, setExpiresTime] = useState("08:00")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
+
+  function handleDateChange(d: string) {
+    setExpiresDate(d)
+    // Only reset time to 08:00 when a date is first picked (time still at default)
+    // If user already changed the time, leave it alone — we just update the date part.
+  }
 
   async function createAnnouncement(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
     setError("")
 
+    const expiresAt = expiresDate ? `${expiresDate}T${expiresTime}:00` : null
+
     try {
       const res = await fetch("/api/announcements", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, body, expiresAt: expiresAt || null }),
+        body: JSON.stringify({ title, body, expiresAt }),
       })
       if (!res.ok) {
         const d = await res.json()
@@ -42,7 +51,8 @@ export function AnnouncementManager({ announcements }: { announcements: Announce
       setItems((prev) => [created, ...prev])
       setTitle("")
       setBody("")
-      setExpiresAt("")
+      setExpiresDate("")
+      setExpiresTime("08:00")
       setShowForm(false)
       router.refresh()
     } catch (err) {
@@ -97,12 +107,21 @@ export function AnnouncementManager({ announcements }: { announcements: Announce
           </div>
           <div>
             <label className="text-xs font-medium text-slate-600 block mb-1">Expires (optional)</label>
-            <input
-              type="datetime-local"
-              value={expiresAt}
-              onChange={(e) => setExpiresAt(e.target.value)}
-              className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
+            <div className="flex gap-2">
+              <input
+                type="date"
+                value={expiresDate}
+                onChange={(e) => handleDateChange(e.target.value)}
+                className="flex-1 h-10 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <input
+                type="time"
+                value={expiresTime}
+                onChange={(e) => setExpiresTime(e.target.value)}
+                disabled={!expiresDate}
+                className="w-28 h-10 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40"
+              />
+            </div>
           </div>
           {error && <p className="text-xs text-red-600 font-medium">{error}</p>}
           <button

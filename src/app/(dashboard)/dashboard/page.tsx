@@ -137,10 +137,18 @@ export default async function DashboardPage() {
       {/* Announcements */}
       {announcements.length > 0 && (
         <div className="space-y-2">
-          {announcements.map((a: { id: string; title: string; body: string }) => (
+          {announcements.map((a: { id: string; title: string; body: string; expiresAt: Date | null }) => (
             <div key={a.id} className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4">
               <p className="font-semibold text-indigo-900 text-sm">{a.title}</p>
               <p className="text-indigo-700 text-sm mt-0.5">{a.body}</p>
+              {a.expiresAt && (
+                <p className="text-xs text-indigo-400 mt-1.5">
+                  Expires{" "}
+                  {a.expiresAt.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Chicago" })}
+                  {" at "}
+                  {a.expiresAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" })}
+                </p>
+              )}
             </div>
           ))}
         </div>
