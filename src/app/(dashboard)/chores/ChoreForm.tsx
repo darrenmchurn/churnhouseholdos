@@ -7,6 +7,7 @@ import { Modal } from "@/components/Modal"
 type User = { id: string; name: string; avatarColor: string }
 
 const FREQUENCIES = [
+  { value: "ONE_TIME", label: "One-time" },
   { value: "DAILY", label: "Daily" },
   { value: "WEEKLY", label: "Weekly" },
   { value: "BIWEEKLY", label: "Every 2 weeks" },
@@ -19,7 +20,7 @@ export function ChoreForm({ users }: { users: User[] }) {
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
     title: "",
-    frequency: "WEEKLY",
+    frequency: "ONE_TIME",
     pointValue: "1",
     assigneeId: "",
   })
@@ -42,7 +43,7 @@ export function ChoreForm({ users }: { users: User[] }) {
     })
     setLoading(false)
     setOpen(false)
-    setForm({ title: "", frequency: "WEEKLY", pointValue: "1", assigneeId: "" })
+    setForm({ title: "", frequency: "ONE_TIME", pointValue: "1", assigneeId: "" })
     router.refresh()
   }
 
@@ -86,7 +87,6 @@ export function ChoreForm({ users }: { users: User[] }) {
               <input
                 type="number"
                 min="1"
-                max="10"
                 value={form.pointValue}
                 onChange={(e) => set("pointValue", e.target.value)}
                 className="w-full h-11 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"

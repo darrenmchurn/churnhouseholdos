@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { X, Megaphone, Plus, Trash2 } from "lucide-react"
+import { chicagoToUTC } from "@/lib/utils"
 
 type Announcement = {
   id: string
@@ -35,7 +36,7 @@ export function AnnouncementManager({ announcements }: { announcements: Announce
     setSaving(true)
     setError("")
 
-    const expiresAt = expiresDate ? `${expiresDate}T${expiresTime}:00` : null
+    const expiresAt = expiresDate ? chicagoToUTC(expiresDate, expiresTime) : null
 
     try {
       const res = await fetch("/api/announcements", {
@@ -170,7 +171,7 @@ export function AnnouncementManager({ announcements }: { announcements: Announce
                   <p className="text-xs text-slate-400 mt-1.5">
                     By {a.creator.name}
                     {a.expiresAt && !expired && (
-                      <> · expires {new Date(a.expiresAt).toLocaleDateString()}</>
+                      <> · expires {new Date(a.expiresAt).toLocaleDateString("en-US", { timeZone: "America/Chicago", month: "short", day: "numeric" })} at {new Date(a.expiresAt).toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" })}</>
                     )}
                   </p>
                 </div>

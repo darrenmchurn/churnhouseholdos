@@ -5,7 +5,6 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { isConfigured, getMonthCalEvents } from "@/lib/google-calendar"
 import { CalendarView } from "./CalendarView"
-import { GcalStatusBanner } from "./GcalStatusBanner"
 import type { CalEvent } from "@/lib/calendar-constants"
 
 export default async function CalendarPage() {
@@ -63,15 +62,11 @@ export default async function CalendarPage() {
     }))
   }
 
-  const gcalConfigured = isConfigured()
-
   return (
     <div className="px-4 pt-6 pb-4 max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold text-slate-900">Calendar</h1>
       </div>
-
-      {canManage && <GcalStatusBanner configured={gcalConfigured} />}
 
       <CalendarView
         initialEvents={events}

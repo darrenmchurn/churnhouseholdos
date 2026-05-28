@@ -33,6 +33,32 @@ export function formatTime(date: Date | string): string {
   })
 }
 
+/**
+ * Convert a date string ("YYYY-MM-DD") + time string ("HH:MM") that the user
+ * entered as America/Chicago local time into a proper UTC ISO string for storage.
+ * Uses Intl to probe the DST-correct offset for that specific date so it works
+ * correctly for both CST (UTC-6) and CDT (UTC-5) automatically.
+ */
+export function chicagoToUTC(date: string, time: string): string {
+  const [y, mo, d] = date.split("-").map(Number)
+  const [h, mi]    = time.split(":").map(Number)
+  // Probe noon UTC on that date — tells us what hour it is in Chicago at that moment,
+  // which gives us the local→UTC offset without any hardcoded DST logic.
+  const probe    = new Date(Date.UTC(y, mo - 1, d, 12))
+  const chicagoH = Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Chicago",
+      hour: "numeric",
+      hour12: false,
+    })
+      .formatToParts(probe)
+      .find((p) => p.type === "hour")?.value ?? "6"
+  )
+  // chicagoH === 24 is Intl's representation of midnight; treat as 0.
+  const offsetH = 12 - (chicagoH === 24 ? 0 : chicagoH)  // 5 for CDT, 6 for CST
+  return new Date(Date.UTC(y, mo - 1, d, h + offsetH, mi)).toISOString()
+}
+
 /** Master list of selectable avatar background colors — shared by Profile and Admin */
 export const AVATAR_COLORS = [
   "#6366f1", "#8b5cf6", "#ec4899", "#f59e0b",

@@ -23,6 +23,7 @@ const FREQ_DAYS: Record<string, number> = {
 }
 
 const FREQ_LABEL: Record<string, string> = {
+  ONE_TIME: "One-time",
   DAILY: "Daily",
   WEEKLY: "Weekly",
   BIWEEKLY: "Biweekly",
@@ -30,6 +31,8 @@ const FREQ_LABEL: Record<string, string> = {
 }
 
 function isDue(chore: Chore): boolean {
+  // One-time chores are due until completed; never reset
+  if (chore.frequency === "ONE_TIME") return !chore.lastCompleted
   if (!chore.lastCompleted) return true
   const days = FREQ_DAYS[chore.frequency] ?? 7
   const nextDue = new Date(chore.lastCompleted).getTime() + days * 86400000

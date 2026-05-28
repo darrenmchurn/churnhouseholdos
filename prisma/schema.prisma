@@ -25,6 +25,7 @@ enum Frequency {
   WEEKLY
   BIWEEKLY
   MONTHLY
+  ONE_TIME
 }
 
 model User {

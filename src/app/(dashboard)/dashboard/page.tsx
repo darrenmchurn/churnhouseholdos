@@ -31,7 +31,7 @@ export default async function DashboardPage() {
 
   // Read name + avatarColor from DB so profile changes are reflected immediately
   // (the session JWT is only updated on re-login, so session.user.name can be stale)
-  const [currentUser, taskCount, choreCount, eventCount, groceryCount, announcements] =
+  const [currentUser, taskCount, choreItems, eventCount, groceryCount, announcements] =
     await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
@@ -43,8 +43,9 @@ export default async function DashboardPage() {
           ...(canSeeAll ? {} : { assigneeId: userId }),
         },
       }),
-      prisma.chore.count({
+      prisma.chore.findMany({
         where: canSeeAll ? {} : { assigneeId: userId },
+        select: { frequency: true, lastCompleted: true },
       }),
       prisma.event.count({
         where: { startDate: { gte: todayStart, lte: todayEnd } },
@@ -60,6 +61,15 @@ export default async function DashboardPage() {
         take: 3,
       }),
     ])
+
+  // Count only chores that are currently due (mirrors ChoreBoard.isDue logic)
+  const FREQ_DAYS_DASH: Record<string, number> = { DAILY: 1, WEEKLY: 7, BIWEEKLY: 14, MONTHLY: 30 }
+  const choreCount = choreItems.filter((c) => {
+    if (c.frequency === "ONE_TIME") return !c.lastCompleted
+    if (!c.lastCompleted) return true
+    const days = FREQ_DAYS_DASH[c.frequency] ?? 7
+    return Date.now() >= new Date(c.lastCompleted).getTime() + days * 86_400_000
+  }).length
 
   const name        = currentUser?.name        ?? session.user.name ?? ""
   const avatarColor = currentUser?.avatarColor ?? session.user.avatarColor ?? "#6366f1"
