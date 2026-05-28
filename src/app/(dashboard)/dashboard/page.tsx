@@ -85,6 +85,20 @@ export default async function DashboardPage() {
           setTimeout(() => reject(new Error("GCal timeout")), 3000)
         ),
       ])
+      // GCal only knows its own colorId system — restore the hex colors we
+      // actually stored in Prisma by cross-referencing on gcalId.
+      const gcalIds = upcomingEvents.flatMap((e) => (e.gcalId ? [e.gcalId] : []))
+      if (gcalIds.length > 0) {
+        const stored = await prisma.event.findMany({
+          where: { gcalId: { in: gcalIds } },
+          select: { gcalId: true, color: true },
+        })
+        const colorMap: Record<string, string> = {}
+        for (const s of stored) { if (s.gcalId) colorMap[s.gcalId] = s.color }
+        upcomingEvents = upcomingEvents.map((e) =>
+          e.gcalId && colorMap[e.gcalId] ? { ...e, color: colorMap[e.gcalId] } : e
+        )
+      }
     } catch {
       // GCal failed or timed out — fall back to Prisma
     }
