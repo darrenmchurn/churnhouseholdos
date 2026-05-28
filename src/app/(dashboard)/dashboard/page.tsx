@@ -126,7 +126,7 @@ export default async function DashboardPage() {
   const stats = [
     { label: "Open Tasks",    value: taskCount,    icon: CheckSquare,  color: "bg-blue-50 text-blue-600",   href: "/tasks" },
     { label: "Chores",        value: choreCount,   icon: Sparkles,     color: "bg-yellow-50 text-yellow-600", href: "/chores" },
-    { label: "Events Today",  value: eventCount,   icon: CalendarDays, color: "bg-green-50 text-green-600",  href: "/calendar" },
+    { label: "Upcoming Events", value: eventCount,   icon: CalendarDays, color: "bg-green-50 text-green-600",  href: "/calendar" },
     ...(canSeeAll ? [{ label: "Grocery Items", value: groceryCount, icon: ShoppingCart, color: "bg-pink-50 text-pink-600", href: "/grocery" }] : []),
   ]
 
