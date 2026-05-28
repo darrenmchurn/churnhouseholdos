@@ -37,7 +37,10 @@ export function GroceryList({
   const nameRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (showForm) nameRef.current?.focus()
+    if (showForm) {
+      // Scroll the form into view without immediately triggering the keyboard
+      nameRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+    }
   }, [showForm])
 
   async function addItem(e: React.FormEvent) {
