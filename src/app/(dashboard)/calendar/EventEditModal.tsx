@@ -79,7 +79,7 @@ export function EventEditModal({ event, onClose, onSaved, onDeleted }: Props) {
       <form onSubmit={handleSave} className="space-y-4">
         <div>
           <label className="text-xs font-medium text-slate-600 block mb-1">Title *</label>
-          <input required value={title} onChange={(e) => setTitle(e.target.value)} autoFocus
+          <input required value={title} onChange={(e) => setTitle(e.target.value)}
             className="w-full h-11 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
         </div>
 

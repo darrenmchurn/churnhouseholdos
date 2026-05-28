@@ -21,6 +21,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   themeColor: "#6366f1",
+  viewportFit: "cover",   // required for env(safe-area-inset-*) to return real values
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

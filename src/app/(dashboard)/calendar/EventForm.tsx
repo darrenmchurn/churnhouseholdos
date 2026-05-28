@@ -78,7 +78,6 @@ export function EventForm({ defaultDate, onCreated }: Props) {
             <label className="text-xs font-medium text-slate-600 block mb-1">Title *</label>
             <input
               required
-              autoFocus
               value={form.title}
               onChange={(e) => set("title", e.target.value)}
               className="w-full h-11 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"

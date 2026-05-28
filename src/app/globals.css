@@ -21,6 +21,28 @@ body {
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* ───────────────────────────────────────────────
+   MOBILE / SAFE AREA
+   ─────────────────────────────────────────────── */
+
+/* Home-indicator clearance (requires viewport-fit=cover in <head>) */
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/*
+  Prevent iOS Safari from zooming into focused inputs.
+  iOS zooms when font-size < 16px; override globally on touch devices.
+  The dark-theme rule below undoes the background so dark inputs stay dark.
+*/
+@supports (-webkit-touch-callout: none) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 /* ═══════════════════════════════════════════
    KIDS THEME — larger text, rounder, friendlier
    ═══════════════════════════════════════════ */

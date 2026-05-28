@@ -47,8 +47,10 @@ export function BottomNav({ role, theme }: { role: string; theme: string }) {
   const labelSize   = isCompact ? "text-[9px]" : "text-[10px]"
 
   return (
-    <nav className={cn("fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 safe-area-pb", navHeight)}>
-      <div className="flex items-stretch h-full">
+    // safe-area-pb extends the white background under the home indicator without
+    // affecting the visible icon/label row, which is sized by navHeight alone.
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 safe-area-pb">
+      <div className={cn("flex items-stretch", navHeight)}>
         {visible.map((item) => {
           const Icon = item.icon
           const active = pathname === item.href || pathname.startsWith(item.href + "/")

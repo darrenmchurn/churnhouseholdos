@@ -20,7 +20,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
       className="flex flex-col min-h-screen"
       data-theme={theme !== "default" ? theme : undefined}
     >
-      <main className="flex-1 overflow-y-auto scroll-container pb-20">
+      {/* pb accounts for fixed bottom nav height (5rem) + iPhone home-indicator safe area */}
+      <main className="flex-1 overflow-y-auto scroll-container pb-[calc(5rem+env(safe-area-inset-bottom))]">
         {children}
       </main>
       {role !== "KIOSK" && <BottomNav role={role} theme={theme} />}
