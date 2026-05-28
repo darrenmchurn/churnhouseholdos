@@ -22,18 +22,19 @@ export default async function CalendarPage() {
 
   let events: CalEvent[] = []
 
+  let gcalFailed = false
   if (isConfigured()) {
     // GCal is the source of truth — read all events from there
     try {
       events = await getMonthCalEvents(timeMin, timeMax)
     } catch (err) {
       console.error("GCal fetch failed, falling back to Prisma:", err)
-      // Fall through to Prisma fallback below
+      gcalFailed = true
     }
   }
 
-  if (!isConfigured() || events.length === 0) {
-    // No GCal or GCal returned nothing / errored — read from Prisma
+  if (!isConfigured() || gcalFailed) {
+    // Only use Prisma when GCal is not configured or errored (not just empty)
     const prismaEvents = await prisma.event.findMany({
       where: { startDate: { gte: timeMin, lte: timeMax } },
       orderBy: { startDate: "asc" },

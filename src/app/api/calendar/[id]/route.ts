@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { logActivity } from "@/lib/activity"
-import { isConfigured, deleteEvent } from "@/lib/google-calendar"
+import { isConfigured, deleteEvent, updateEvent } from "@/lib/google-calendar"
 
 export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -17,34 +17,60 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
   const body = await req.json()
   const { title, description, color, startDate, endDate, allDay } = body
 
-  const event = await prisma.event.update({
-    where: { id },
-    data: {
-      ...(title !== undefined && { title }),
-      ...(description !== undefined && { description }),
-      ...(color !== undefined && { color }),
-      ...(startDate !== undefined && {
-        startDate: allDay ? new Date(startDate + "T12:00:00Z") : new Date(startDate),
-      }),
-      ...(endDate !== undefined && {
-        endDate: endDate
-          ? allDay ? new Date(endDate + "T12:00:00Z") : new Date(endDate)
-          : null,
-      }),
-      ...(allDay !== undefined && { allDay }),
-    },
-    include: { creator: { select: { name: true } } },
-  })
+  // Try to find the Prisma record by Prisma id or gcalId
+  let prismaEvent = await prisma.event.findUnique({ where: { id } })
+  if (!prismaEvent) prismaEvent = await prisma.event.findFirst({ where: { gcalId: id } })
 
-  await logActivity(userId, "updated", "event", event.title)
+  // Determine which GCal ID to update
+  const gcalId = prismaEvent?.gcalId ?? (isConfigured() ? id : null)
 
-  return NextResponse.json({
-    ...event,
-    startDate: event.startDate.toISOString(),
-    endDate: event.endDate?.toISOString() ?? null,
-    createdAt: event.createdAt.toISOString(),
-    updatedAt: event.updatedAt.toISOString(),
-  })
+  // Sync to GCal if configured
+  if (isConfigured() && gcalId) {
+    try {
+      await updateEvent(gcalId, {
+        ...(title && { summary: title }),
+        ...(description !== undefined && { description }),
+        ...(startDate && { start: startDate, allDay }),
+        ...(endDate && { end: endDate, allDay }),
+      })
+    } catch (err) {
+      console.error("GCal update failed:", err)
+    }
+  }
+
+  // Update Prisma if we have a record
+  if (prismaEvent) {
+    const updated = await prisma.event.update({
+      where: { id: prismaEvent.id },
+      data: {
+        ...(title !== undefined && { title }),
+        ...(description !== undefined && { description }),
+        ...(color !== undefined && { color }),
+        ...(startDate !== undefined && {
+          startDate: allDay ? new Date(startDate + "T12:00:00Z") : new Date(startDate),
+        }),
+        ...(endDate !== undefined && {
+          endDate: endDate
+            ? allDay ? new Date(endDate + "T12:00:00Z") : new Date(endDate)
+            : null,
+        }),
+        ...(allDay !== undefined && { allDay }),
+      },
+      include: { creator: { select: { name: true } } },
+    })
+    await logActivity(userId, "updated", "event", updated.title)
+    return NextResponse.json({
+      ...updated,
+      startDate: updated.startDate.toISOString(),
+      endDate: updated.endDate?.toISOString() ?? null,
+      createdAt: updated.createdAt.toISOString(),
+      updatedAt: updated.updatedAt.toISOString(),
+    })
+  }
+
+  // GCal-only event — just log and return ok
+  await logActivity(userId, "updated", "event", title ?? "calendar event")
+  return NextResponse.json({ ok: true, gcalOnly: true })
 }
 
 export async function DELETE(_req: Request, props: { params: Promise<{ id: string }> }) {

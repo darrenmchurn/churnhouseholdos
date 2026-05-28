@@ -11,6 +11,7 @@ import {
   ShoppingCart,
   History,
   Settings,
+  Trophy,
 } from "lucide-react"
 
 type NavItem = {
@@ -27,6 +28,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/chores",    label: "Chores",   emoji: "✨", icon: Sparkles },
   { href: "/calendar",  label: "Calendar", emoji: "📅", icon: CalendarDays },
   { href: "/grocery",   label: "Grocery",  emoji: "🛒", icon: ShoppingCart, roles: ["ADMIN", "PARENT", "CHILD"] },
+  { href: "/prizes",    label: "Prizes",   emoji: "🏆", icon: Trophy,       roles: ["ADMIN", "PARENT", "CHILD"] },
   { href: "/activity",  label: "History",  emoji: "📋", icon: History,      roles: ["ADMIN", "PARENT", "CHILD"] },
   { href: "/admin",     label: "Admin",    emoji: "⚙️", icon: Settings,     roles: ["ADMIN", "PARENT"] },
 ]

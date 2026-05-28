@@ -35,8 +35,15 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
     include: { assignee: { select: { id: true, name: true, avatarColor: true } } },
   })
 
-  if (!isEditUpdate || ("complete" in body && body.complete)) {
+  const isCompletion = !isEditUpdate || ("complete" in body && body.complete)
+  if (isCompletion) {
     await logActivity(userId, "completed", "chore", chore.title)
+    // Award points to whoever completed it (the requester)
+    if (chore.pointValue > 0) {
+      await prisma.pointTransaction.create({
+        data: { userId, points: chore.pointValue, reason: `Chore: ${chore.title}` },
+      })
+    }
   } else {
     await logActivity(userId, "updated", "chore", chore.title)
   }

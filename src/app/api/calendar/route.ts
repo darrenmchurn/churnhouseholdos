@@ -16,11 +16,11 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "timeMin and timeMax required" }, { status: 400 })
   }
 
-  // When GCal is configured, read events from there so existing GCal events are visible
+  // When GCal is configured, it is the sole source — only fall back on error
   if (isConfigured()) {
     try {
       const events = await getMonthCalEvents(new Date(timeMin), new Date(timeMax))
-      return NextResponse.json(events)
+      return NextResponse.json(events) // return even if empty
     } catch (err) {
       console.error("GCal GET failed, falling back to Prisma:", err)
     }

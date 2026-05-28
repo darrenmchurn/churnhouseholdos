@@ -113,7 +113,7 @@ export function EventForm({ defaultDate, onCreated }: Props) {
             {!allDay && (
               <>
                 <div>
-                  <label className="text-xs font-medium text-slate-600 block mb-1">Start</label>
+                  <label className="text-xs font-medium text-slate-600 block mb-1">Start (CST)</label>
                   <input
                     type="time"
                     value={form.startTime}
@@ -122,7 +122,7 @@ export function EventForm({ defaultDate, onCreated }: Props) {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-slate-600 block mb-1">End</label>
+                  <label className="text-xs font-medium text-slate-600 block mb-1">End (CST)</label>
                   <input
                     type="time"
                     value={form.endTime}

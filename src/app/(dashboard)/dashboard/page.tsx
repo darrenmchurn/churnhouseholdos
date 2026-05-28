@@ -193,12 +193,13 @@ export default async function DashboardPage() {
                   <p className="font-medium text-slate-900 text-sm truncate">{event.title}</p>
                   <p className="text-xs text-slate-500 mt-0.5">
                     {new Date(event.startDate).toLocaleDateString("en-US", {
-                      weekday: "short",
-                      month: "short",
-                      day: "numeric",
+                      weekday: "short", month: "short", day: "numeric",
+                      timeZone: "America/Chicago",
                     })}
                     {!event.allDay && (
-                      <> · {new Date(event.startDate).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</>
+                      <> · {new Date(event.startDate).toLocaleTimeString("en-US", {
+                        hour: "numeric", minute: "2-digit", timeZone: "America/Chicago",
+                      })}</>
                     )}
                   </p>
                 </div>

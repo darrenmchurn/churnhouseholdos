@@ -92,8 +92,12 @@ export async function createEvent(input: CreateEventInput): Promise<GCalEvent> {
     summary: input.summary,
     description: input.description || undefined,
     colorId: input.colorId || undefined,
-    start: input.allDay ? { date: input.start } : { dateTime: input.start },
-    end: input.allDay ? { date: input.end } : { dateTime: input.end },
+    start: input.allDay
+      ? { date: input.start }
+      : { dateTime: input.start, timeZone: "America/Chicago" },
+    end: input.allDay
+      ? { date: input.end }
+      : { dateTime: input.end, timeZone: "America/Chicago" },
   }
 
   const res = await fetch(calendarUrl(), {
@@ -114,8 +118,12 @@ export async function updateEvent(id: string, input: Partial<CreateEventInput>):
   if (input.summary) body.summary = input.summary
   if (input.description !== undefined) body.description = input.description
   if (input.colorId !== undefined) body.colorId = input.colorId
-  if (input.start) body.start = input.allDay ? { date: input.start } : { dateTime: input.start }
-  if (input.end) body.end = input.allDay ? { date: input.end } : { dateTime: input.end }
+  if (input.start) body.start = input.allDay
+    ? { date: input.start }
+    : { dateTime: input.start, timeZone: "America/Chicago" }
+  if (input.end) body.end = input.allDay
+    ? { date: input.end }
+    : { dateTime: input.end, timeZone: "America/Chicago" }
 
   const res = await fetch(calendarUrl(`/${id}`), {
     method: "PATCH",

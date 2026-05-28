@@ -38,13 +38,16 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  assignedTasks  Task[]         @relation("TaskAssignee")
-  createdTasks   Task[]         @relation("TaskCreator")
-  assignedChores Chore[]        @relation("ChoreAssignee")
-  createdEvents  Event[]
-  groceryItems   GroceryItem[]
-  announcements  Announcement[]
-  activityLogs   ActivityLog[]
+  assignedTasks     Task[]             @relation("TaskAssignee")
+  createdTasks      Task[]             @relation("TaskCreator")
+  assignedChores    Chore[]            @relation("ChoreAssignee")
+  createdEvents     Event[]
+  groceryItems      GroceryItem[]
+  announcements     Announcement[]
+  activityLogs      ActivityLog[]
+  pointTransactions PointTransaction[]
+  redemptions       Redemption[]
+  createdPrizes     Prize[]            @relation("PrizeCreator")
 }
 
 model Task {
@@ -118,13 +121,48 @@ model Announcement {
 
 model ActivityLog {
   id          String   @id @default(cuid())
-  action      String   // created | completed | deleted | updated | checked_off | unchecked | cleared | posted
-  entity      String   // task | chore | grocery | event | announcement
+  action      String
+  entity      String
   entityTitle String
   createdAt   DateTime @default(now())
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PointTransaction {
+  id        String   @id @default(cuid())
+  points    Int      // positive = earned, negative = spent
+  reason    String
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Prize {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  pointCost   Int
+  emoji       String   @default("🎁")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  createdById String
+  createdBy   User         @relation("PrizeCreator", fields: [createdById], references: [id])
+  redemptions Redemption[]
+}
+
+model Redemption {
+  id          String   @id @default(cuid())
+  pointsSpent Int
+  createdAt   DateTime @default(now())
+
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prizeId String
+  prize   Prize  @relation(fields: [prizeId], references: [id])
 }
 
 // Phase 5: smart home settings stored here (HA_URL, HA_TOKEN, etc.)
