@@ -2,16 +2,8 @@
 
 import { useState } from "react"
 import { Modal } from "@/components/Modal"
-import { GCAL_COLORS } from "@/lib/calendar-constants"
 import type { CalEvent } from "@/lib/calendar-constants"
 import { Trash2 } from "lucide-react"
-
-const COLOR_OPTIONS = Object.values(GCAL_COLORS)
-const COLOR_NAMES: Record<string, string> = {
-  "#ef4444":"Tomato","#f97316":"Flamingo","#f59e0b":"Tangerine","#eab308":"Banana",
-  "#84cc16":"Sage","#16a34a":"Basil","#0d9488":"Peacock","#3b82f6":"Blueberry",
-  "#a78bfa":"Lavender","#9333ea":"Grape","#6b7280":"Graphite",
-}
 const TZ = "America/Chicago"
 
 function toDateInput(iso: string): string {
@@ -28,9 +20,10 @@ type Props = {
   onClose: () => void
   onSaved: (updated: CalEvent) => void
   onDeleted: (id: string) => void
+  avatarColors: string[]
 }
 
-export function EventEditModal({ event, onClose, onSaved, onDeleted }: Props) {
+export function EventEditModal({ event, onClose, onSaved, onDeleted, avatarColors }: Props) {
   const [title, setTitle]       = useState(event.title)
   const [description, setDesc]  = useState(event.description ?? "")
   const [color, setColor]       = useState(event.color)
@@ -115,13 +108,13 @@ export function EventEditModal({ event, onClose, onSaved, onDeleted }: Props) {
           )}
         </div>
 
-        {/* Colour */}
+        {/* Colour — restricted to active avatar colors */}
         <div>
           <label className="text-xs font-medium text-slate-600 block mb-2">Color</label>
           <div className="flex gap-2 flex-wrap">
-            {COLOR_OPTIONS.map((hex) => (
-              <button key={hex} type="button" title={COLOR_NAMES[hex]} onClick={() => setColor(hex)}
-                className={`w-7 h-7 rounded-full transition-transform ${color === hex ? "scale-125 ring-2 ring-offset-1 ring-slate-400" : ""}`}
+            {avatarColors.map((hex) => (
+              <button key={hex} type="button" onClick={() => setColor(hex)}
+                className={`w-7 h-7 rounded-full transition-transform ${color === hex ? "scale-125 ring-2 ring-offset-1 ring-slate-400" : ""}${hex === "#ffffff" ? " ring-1 ring-slate-200" : ""}`}
                 style={{ backgroundColor: hex }} />
             ))}
           </div>

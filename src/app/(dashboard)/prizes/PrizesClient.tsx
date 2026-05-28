@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Trophy, ShoppingBag, Clock, Plus, Trash2, Star } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, avatarTextColor } from "@/lib/utils"
 import { Modal } from "@/components/Modal"
 
 type Prize = { id: string; title: string; description: string | null; pointCost: number; emoji: string }
@@ -223,7 +223,7 @@ export function PrizesClient({ prizes: initial, leaderboard, recentRedemptions: 
                 {i + 1}
               </span>
               <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+                className={cn("w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0", avatarTextColor(u.avatarColor))}
                 style={{ backgroundColor: u.avatarColor }}
               >
                 {u.name[0].toUpperCase()}
@@ -262,7 +262,7 @@ export function PrizesClient({ prizes: initial, leaderboard, recentRedemptions: 
           {feed.map((r) => (
             <div key={r.id} className="bg-white rounded-2xl border border-slate-200 p-4 flex items-center gap-3">
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+                className={cn("w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0", avatarTextColor(r.avatarColor))}
                 style={{ backgroundColor: r.avatarColor }}
               >
                 {r.userName[0].toUpperCase()}

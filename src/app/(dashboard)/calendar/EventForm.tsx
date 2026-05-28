@@ -2,31 +2,22 @@
 
 import { useState } from "react"
 import { Modal } from "@/components/Modal"
-import { GCAL_COLORS } from "@/lib/calendar-constants"
-
-// Reuse the same colour palette as before — nice set of 11 colours
-const COLOR_OPTIONS = Object.entries(GCAL_COLORS).map(([, hex]) => hex)
-
-const COLOR_NAMES: Record<string, string> = {
-  "#ef4444": "Tomato",   "#f97316": "Flamingo",  "#f59e0b": "Tangerine",
-  "#eab308": "Banana",   "#84cc16": "Sage",       "#16a34a": "Basil",
-  "#0d9488": "Peacock",  "#3b82f6": "Blueberry",  "#a78bfa": "Lavender",
-  "#9333ea": "Grape",    "#6b7280": "Graphite",
-}
 
 type Props = {
   defaultDate: string
   onCreated: () => void
+  defaultColor: string   // creator's avatar color
+  avatarColors: string[] // active avatar colors for the picker
 }
 
-export function EventForm({ defaultDate, onCreated }: Props) {
+export function EventForm({ defaultDate, onCreated, defaultColor, avatarColors }: Props) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [allDay, setAllDay] = useState(true)
   const [form, setForm] = useState({
     title: "",
     description: "",
-    color: "#3b82f6",   // Blueberry default
+    color: defaultColor,
     date: defaultDate,
     startTime: "09:00",
     endTime: "10:00",
@@ -58,7 +49,7 @@ export function EventForm({ defaultDate, onCreated }: Props) {
 
     setLoading(false)
     setOpen(false)
-    setForm((f) => ({ ...f, title: "", description: "", startTime: "09:00", endTime: "10:00" }))
+    setForm((f) => ({ ...f, title: "", description: "", color: defaultColor, startTime: "09:00", endTime: "10:00" }))
     onCreated()
   }
 
@@ -133,17 +124,16 @@ export function EventForm({ defaultDate, onCreated }: Props) {
             )}
           </div>
 
-          {/* Colour picker */}
+          {/* Colour picker — shows only colors actively used by family avatars */}
           <div>
             <label className="text-xs font-medium text-slate-600 block mb-2">Color</label>
             <div className="flex gap-2 flex-wrap">
-              {COLOR_OPTIONS.map((hex) => (
+              {avatarColors.map((hex) => (
                 <button
                   key={hex}
                   type="button"
-                  title={COLOR_NAMES[hex] ?? hex}
                   onClick={() => set("color", hex)}
-                  className={`w-7 h-7 rounded-full transition-transform ${form.color === hex ? "scale-125 ring-2 ring-offset-1 ring-slate-400" : ""}`}
+                  className={`w-7 h-7 rounded-full transition-transform ${form.color === hex ? "scale-125 ring-2 ring-offset-1 ring-slate-400" : ""}${hex === "#ffffff" ? " ring-1 ring-slate-200" : ""}`}
                   style={{ backgroundColor: hex }}
                 />
               ))}

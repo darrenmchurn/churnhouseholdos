@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ROLE_LABELS, ROLE_COLORS } from "@/lib/utils"
+import { ROLE_LABELS, ROLE_COLORS, avatarTextColor } from "@/lib/utils"
 import { UserEditor } from "./UserEditor"
 
 type User = {
@@ -35,7 +35,7 @@ export function UserList({ users: initial, currentUserId, isAdmin }: Props) {
           className="bg-white rounded-2xl border border-slate-200 p-4 flex items-center gap-3"
         >
           <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0"
+            className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold flex-shrink-0 ${avatarTextColor(user.avatarColor)}${user.avatarColor === "#ffffff" ? " ring-1 ring-slate-200" : ""}`}
             style={{ backgroundColor: user.avatarColor }}
           >
             {user.name[0].toUpperCase()}

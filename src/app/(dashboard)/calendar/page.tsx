@@ -14,6 +14,15 @@ export default async function CalendarPage() {
 
   const canManage = session.user.role === "ADMIN" || session.user.role === "PARENT"
 
+  // Fetch avatar colors in active use (non-kiosk users) so the calendar picker
+  // shows only the family's actual colors, and we know the current user's color.
+  const avatarUsers = await prisma.user.findMany({
+    where:  { role: { not: "KIOSK" } },
+    select: { id: true, avatarColor: true },
+  })
+  const avatarColors  = [...new Set(avatarUsers.map((u) => u.avatarColor))]
+  const myAvatarColor = avatarUsers.find((u) => u.id === session.user.id)?.avatarColor ?? "#6366f1"
+
   const now = new Date()
   const year = now.getFullYear()
   const month = now.getMonth()
@@ -70,6 +79,8 @@ export default async function CalendarPage() {
         initialMonth={month}
         today={now.toISOString().slice(0, 10)}
         canManage={canManage}
+        avatarColors={avatarColors}
+        myAvatarColor={myAvatarColor}
       />
     </div>
   )

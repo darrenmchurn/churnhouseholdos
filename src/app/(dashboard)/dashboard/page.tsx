@@ -13,6 +13,7 @@ import {
   ShoppingCart,
   LogOut,
 } from "lucide-react"
+import { avatarTextColor } from "@/lib/utils"
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -109,7 +110,7 @@ export default async function DashboardPage() {
         <div className="flex items-center gap-3">
           <a
             href="/profile"
-            className="w-11 h-11 rounded-2xl flex items-center justify-center text-white font-bold text-lg shadow-sm active:scale-90 transition-transform"
+            className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-lg shadow-sm active:scale-90 transition-transform ${avatarTextColor(avatarColor)}${avatarColor === "#ffffff" ? " ring-1 ring-slate-200" : ""}`}
             style={{ backgroundColor: avatarColor }}
             title="Edit profile & theme"
           >

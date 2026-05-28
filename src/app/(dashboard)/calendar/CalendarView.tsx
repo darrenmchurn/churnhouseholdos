@@ -4,7 +4,6 @@ import { useState, useCallback } from "react"
 import { ChevronLeft, ChevronRight, Trash2, Clock, Pencil } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { CalEvent } from "@/lib/calendar-constants"
-import { GCAL_COLORS } from "@/lib/calendar-constants"
 import { EventForm } from "./EventForm"
 import { EventEditModal } from "./EventEditModal"
 
@@ -25,21 +24,22 @@ function formatEventTime(e: CalEvent): string {
   })
 }
 
-// Map hex colour back to a GCal colorId for the edit form default
-const HEX_TO_ID = Object.fromEntries(Object.entries(GCAL_COLORS).map(([id, hex]) => [hex, id]))
-
 export function CalendarView({
   initialEvents,
   initialYear,
   initialMonth,
   today,
   canManage,
+  avatarColors,
+  myAvatarColor,
 }: {
   initialEvents: CalEvent[]
   initialYear: number
   initialMonth: number
   today: string
   canManage: boolean
+  avatarColors: string[]
+  myAvatarColor: string
 }) {
   const [year, setYear]               = useState(initialYear)
   const [month, setMonth]             = useState(initialMonth)
@@ -154,7 +154,12 @@ export function CalendarView({
               })}
             </h3>
             {canManage && (
-              <EventForm defaultDate={selectedDate ?? today} onCreated={() => fetchEvents(year, month)} />
+              <EventForm
+                defaultDate={selectedDate ?? today}
+                onCreated={() => fetchEvents(year, month)}
+                defaultColor={myAvatarColor}
+                avatarColors={avatarColors}
+              />
             )}
           </div>
 
@@ -202,7 +207,12 @@ export function CalendarView({
       {/* Add button when no date selected */}
       {!selectedDate && canManage && (
         <div className="flex justify-end">
-          <EventForm defaultDate={today} onCreated={() => fetchEvents(year, month)} />
+          <EventForm
+          defaultDate={today}
+          onCreated={() => fetchEvents(year, month)}
+          defaultColor={myAvatarColor}
+          avatarColors={avatarColors}
+        />
         </div>
       )}
 
@@ -219,6 +229,7 @@ export function CalendarView({
             setEvents((prev) => prev.filter((e) => e.id !== id))
             setEditing(null)
           }}
+          avatarColors={avatarColors}
         />
       )}
     </div>
