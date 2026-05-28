@@ -231,7 +231,7 @@ export function AnnouncementManager({ announcements }: { announcements: Announce
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-slate-600">{a.body}</p>
+                  <p className="text-sm text-slate-600 whitespace-pre-wrap">{a.body}</p>
                   <p className="text-xs text-slate-400 mt-1.5">
                     By {a.creator.name}
                     {a.expiresAt && !expired && (
