@@ -23,7 +23,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
@@ -42,6 +42,9 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
           // dvh = dynamic viewport height: recalculates when keyboard appears on iOS 16+
           // 90vh is the fallback for older browsers
           "max-h-[90vh] max-h-[85dvh]",
+          // On mobile the panel sits at the very bottom of the viewport.
+          // pb-[env(safe-area-inset-bottom)] keeps content clear of the home indicator.
+          "pb-[env(safe-area-inset-bottom)] sm:pb-0",
           "sm:max-w-md sm:mx-4",
           className
         )}
