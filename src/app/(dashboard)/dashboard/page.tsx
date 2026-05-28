@@ -19,7 +19,7 @@ export default async function DashboardPage() {
   const session = await auth()
   if (!session) return null
 
-  const { id: userId, name, role, avatarColor } = session.user
+  const { id: userId, role } = session.user
   const today = new Date()
   const todayStart = new Date(today.setHours(0, 0, 0, 0))
   const todayEnd = new Date(today.setHours(23, 59, 59, 999))
@@ -29,8 +29,14 @@ export default async function DashboardPage() {
   const isKiosk = role === "KIOSK"
   const canSeeAll = isAdmin || isParent
 
-  const [taskCount, choreCount, eventCount, groceryCount, announcements] =
+  // Read name + avatarColor from DB so profile changes are reflected immediately
+  // (the session JWT is only updated on re-login, so session.user.name can be stale)
+  const [currentUser, taskCount, choreCount, eventCount, groceryCount, announcements] =
     await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true, avatarColor: true },
+      }),
       prisma.task.count({
         where: {
           completed: false,
@@ -54,6 +60,9 @@ export default async function DashboardPage() {
         take: 3,
       }),
     ])
+
+  const name        = currentUser?.name        ?? session.user.name ?? ""
+  const avatarColor = currentUser?.avatarColor ?? session.user.avatarColor ?? "#6366f1"
 
   // Fetch upcoming events — prefer GCal (shows all family events) with a
   // 3-second timeout, falling back to Prisma if GCal is slow or unconfigured

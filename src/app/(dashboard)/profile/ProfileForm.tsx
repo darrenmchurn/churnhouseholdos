@@ -2,14 +2,8 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { cn } from "@/lib/utils"
+import { cn, avatarTextColor, AVATAR_COLORS } from "@/lib/utils"
 import { Check, Eye, EyeOff } from "lucide-react"
-
-const AVATAR_COLORS = [
-  "#6366f1", "#8b5cf6", "#ec4899", "#f59e0b",
-  "#10b981", "#3b82f6", "#ef4444", "#f97316",
-  "#06b6d4", "#84cc16", "#a855f7", "#14b8a6",
-]
 
 type Theme = {
   id: string
@@ -202,7 +196,11 @@ export function ProfileForm({ initialName, initialAvatarColor, initialTheme }: P
           {/* Avatar preview */}
           <div className="flex items-center gap-4">
             <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-sm flex-shrink-0"
+              className={cn(
+                "w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-2xl shadow-sm flex-shrink-0",
+                avatarTextColor(avatarColor),
+                avatarColor === "#ffffff" && "ring-1 ring-slate-200"
+              )}
               style={{ backgroundColor: avatarColor }}
             >
               {name[0]?.toUpperCase() ?? "?"}
@@ -230,7 +228,8 @@ export function ProfileForm({ initialName, initialAvatarColor, initialTheme }: P
                   onClick={() => setAvatarColor(c)}
                   className={cn(
                     "w-8 h-8 rounded-full transition-transform",
-                    avatarColor === c && "scale-125 ring-2 ring-offset-1 ring-slate-400"
+                    avatarColor === c ? "scale-125 ring-2 ring-offset-1 ring-slate-400" : "",
+                    c === "#ffffff" && avatarColor !== c && "ring-1 ring-slate-200"
                   )}
                   style={{ backgroundColor: c }}
                 />

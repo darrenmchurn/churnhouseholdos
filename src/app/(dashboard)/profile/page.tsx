@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { ProfileForm } from "./ProfileForm"
-import { ROLE_LABELS, ROLE_COLORS } from "@/lib/utils"
+import { ROLE_LABELS, ROLE_COLORS, avatarTextColor } from "@/lib/utils"
 
 export default async function ProfilePage() {
   const session = await auth()
@@ -23,7 +23,7 @@ export default async function ProfilePage() {
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <div
-          className="w-16 h-16 rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-sm flex-shrink-0"
+          className={`w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-2xl shadow-sm flex-shrink-0 ${avatarTextColor(user.avatarColor)}${user.avatarColor === "#ffffff" ? " ring-1 ring-slate-200" : ""}`}
           style={{ backgroundColor: user.avatarColor }}
         >
           {user.name[0].toUpperCase()}

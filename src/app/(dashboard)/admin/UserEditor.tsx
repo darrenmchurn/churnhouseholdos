@@ -2,15 +2,8 @@
 
 import { useState } from "react"
 import { Modal } from "@/components/Modal"
-import { cn, avatarTextColor } from "@/lib/utils"
+import { cn, avatarTextColor, AVATAR_COLORS } from "@/lib/utils"
 import { Eye, EyeOff, Pencil } from "lucide-react"
-
-export const AVATAR_COLORS = [
-  "#6366f1", "#8b5cf6", "#ec4899", "#f59e0b",
-  "#10b981", "#3b82f6", "#ef4444", "#f97316",
-  "#06b6d4", "#84cc16", "#a855f7", "#14b8a6",
-  "#374151", "#ffffff",
-]
 
 const ROLES = [
   { value: "ADMIN",  label: "Admin",  desc: "Full access"         },
