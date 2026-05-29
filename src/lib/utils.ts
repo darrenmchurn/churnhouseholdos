@@ -59,6 +59,29 @@ export function chicagoToUTC(date: string, time: string): string {
   return new Date(Date.UTC(y, mo - 1, d, h + offsetH, mi)).toISOString()
 }
 
+/**
+ * Convert a UTC ISO string back to Chicago-local date ("YYYY-MM-DD") and
+ * 24-hour time ("HH:MM") for pre-populating date/time inputs.
+ */
+export function utcToChicago(iso: string): { date: string; time: string } {
+  const d = new Date(iso)
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Chicago",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(d)
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "00"
+  const h = get("hour") === "24" ? "00" : get("hour")
+  return {
+    date: `${get("year")}-${get("month")}-${get("day")}`,
+    time: `${h}:${get("minute")}`,
+  }
+}
+
 /** Master list of selectable avatar background colors — shared by Profile and Admin */
 export const AVATAR_COLORS = [
   "#6366f1", "#8b5cf6", "#ec4899", "#f59e0b",

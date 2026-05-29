@@ -39,6 +39,7 @@ export default async function ChoresPage() {
 
       <ChoreBoard
         chores={chores as Parameters<typeof ChoreBoard>[0]["chores"]}
+        users={users}
         userId={userId}
         canManage={canManage}
       />

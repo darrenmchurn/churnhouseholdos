@@ -3,15 +3,16 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Modal } from "@/components/Modal"
+import { chicagoToUTC } from "@/lib/utils"
 
 type User = { id: string; name: string; avatarColor: string }
 
 const FREQUENCIES = [
   { value: "ONE_TIME", label: "One-time" },
-  { value: "DAILY", label: "Daily" },
-  { value: "WEEKLY", label: "Weekly" },
+  { value: "DAILY",    label: "Daily" },
+  { value: "WEEKLY",   label: "Weekly" },
   { value: "BIWEEKLY", label: "Every 2 weeks" },
-  { value: "MONTHLY", label: "Monthly" },
+  { value: "MONTHLY",  label: "Monthly" },
 ]
 
 export function ChoreForm({ users }: { users: User[] }) {
@@ -24,6 +25,8 @@ export function ChoreForm({ users }: { users: User[] }) {
     pointValue: "1",
     assigneeId: "",
   })
+  const [dueByDate, setDueByDate] = useState("")
+  const [dueByTime, setDueByTime] = useState("08:00")
 
   function set(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }))
@@ -32,6 +35,7 @@ export function ChoreForm({ users }: { users: User[] }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
+    const dueBy = dueByDate ? chicagoToUTC(dueByDate, dueByTime) : null
     await fetch("/api/chores", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -39,11 +43,14 @@ export function ChoreForm({ users }: { users: User[] }) {
         ...form,
         pointValue: parseInt(form.pointValue) || 1,
         assigneeId: form.assigneeId || null,
+        dueBy,
       }),
     })
     setLoading(false)
     setOpen(false)
     setForm({ title: "", frequency: "ONE_TIME", pointValue: "1", assigneeId: "" })
+    setDueByDate("")
+    setDueByTime("08:00")
     router.refresh()
   }
 
@@ -106,6 +113,27 @@ export function ChoreForm({ users }: { users: User[] }) {
                 <option key={u.id} value={u.id}>{u.name}</option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-slate-600 block mb-1">
+              Due By <span className="text-slate-400 font-normal">(optional)</span>
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="date"
+                value={dueByDate}
+                onChange={(e) => setDueByDate(e.target.value)}
+                className="flex-1 h-11 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <input
+                type="time"
+                value={dueByTime}
+                onChange={(e) => setDueByTime(e.target.value)}
+                disabled={!dueByDate}
+                className="w-28 h-11 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40"
+              />
+            </div>
           </div>
 
           <button

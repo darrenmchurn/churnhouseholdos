@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { CheckCircle2, Trash2, Star, GripVertical } from "lucide-react"
+import { CheckCircle2, Trash2, Star, GripVertical, Pencil } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
   DndContext,
@@ -22,13 +22,16 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
+import { ChoreEditModal } from "./ChoreEditModal"
 
+type User = { id: string; name: string; avatarColor: string }
 type Assignee = { id: string; name: string; avatarColor: string }
 type Chore = {
   id: string
   title: string
   frequency: string
   pointValue: number
+  dueBy: string | null
   lastCompleted: string | null
   assignee: Assignee | null
 }
@@ -63,6 +66,33 @@ function lastCompletedLabel(date: string | null): string {
   return `Done ${days}d ago`
 }
 
+function getDueByBadge(dueBy: string | null): { label: string; cls: string } {
+  if (!dueBy) {
+    return { label: "No Due Date", cls: "bg-red-100 text-red-600" }
+  }
+
+  // Compare calendar dates (strip time) so "day of" = same calendar day
+  const nowMidnight = new Date()
+  nowMidnight.setHours(0, 0, 0, 0)
+  const dueMidnight = new Date(dueBy)
+  dueMidnight.setHours(0, 0, 0, 0)
+  const diffDays = (dueMidnight.getTime() - nowMidnight.getTime()) / 86_400_000
+
+  const label = new Date(dueBy).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "America/Chicago",
+  })
+
+  if (diffDays <= 0) {
+    return { label, cls: "bg-red-100 text-red-600" }
+  } else if (diffDays <= 3) {
+    return { label, cls: "bg-yellow-100 text-yellow-700" }
+  } else {
+    return { label, cls: "bg-green-100 text-green-700" }
+  }
+}
+
 // ─── Individual sortable card ────────────────────────────────────────────────
 
 function SortableChoreCard({
@@ -74,6 +104,7 @@ function SortableChoreCard({
   deleting,
   onComplete,
   onDelete,
+  onEdit,
 }: {
   chore: Chore
   overdue: boolean
@@ -83,6 +114,7 @@ function SortableChoreCard({
   deleting: string | null
   onComplete: (id: string) => void
   onDelete: (id: string) => void
+  onEdit: (chore: Chore) => void
 }) {
   const {
     attributes,
@@ -99,6 +131,7 @@ function SortableChoreCard({
   }
 
   const color = chore.assignee?.avatarColor ?? "#6366f1"
+  const badge = getDueByBadge(chore.dueBy)
 
   return (
     <div
@@ -126,26 +159,39 @@ function SortableChoreCard({
       {/* Main content */}
       <div className="flex-1 min-w-0 space-y-2">
 
-        {/* Title + delete */}
+        {/* Title + action buttons */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-start gap-1.5 min-w-0">
-            {overdue && (
-              <span className="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-red-100 text-red-600 uppercase tracking-wide mt-0.5">
-                Due
-              </span>
-            )}
+            <span
+              className={cn(
+                "flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wide mt-0.5",
+                badge.cls
+              )}
+            >
+              {badge.label}
+            </span>
             <p className="font-semibold text-slate-900 text-sm leading-snug">
               {chore.title}
             </p>
           </div>
           {canManage && (
-            <button
-              onClick={() => onDelete(chore.id)}
-              disabled={deleting === chore.id}
-              className="flex-shrink-0 text-slate-300 hover:text-red-400 transition-colors"
-            >
-              <Trash2 size={14} />
-            </button>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <button
+                onClick={() => onEdit(chore)}
+                className="text-slate-300 hover:text-indigo-400 transition-colors"
+                aria-label="Edit chore"
+              >
+                <Pencil size={14} />
+              </button>
+              <button
+                onClick={() => onDelete(chore.id)}
+                disabled={deleting === chore.id}
+                className="text-slate-300 hover:text-red-400 transition-colors"
+                aria-label="Delete chore"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
           )}
         </div>
 
@@ -203,6 +249,7 @@ function SortableSection({
   deleting,
   onComplete,
   onDelete,
+  onEdit,
   onReorder,
 }: {
   items: Chore[]
@@ -213,6 +260,7 @@ function SortableSection({
   deleting: string | null
   onComplete: (id: string) => void
   onDelete: (id: string) => void
+  onEdit: (chore: Chore) => void
   onReorder: (newItems: Chore[]) => void
 }) {
   const sensors = useSensors(
@@ -255,6 +303,7 @@ function SortableSection({
               deleting={deleting}
               onComplete={onComplete}
               onDelete={onDelete}
+              onEdit={onEdit}
             />
           ))}
         </div>
@@ -267,10 +316,12 @@ function SortableSection({
 
 export function ChoreBoard({
   chores: initial,
+  users,
   userId,
   canManage,
 }: {
   chores: Chore[]
+  users: User[]
   userId: string
   canManage: boolean
 }) {
@@ -278,6 +329,7 @@ export function ChoreBoard({
   const [chores, setChores] = useState(initial)
   const [completing, setCompleting] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [editingChore, setEditingChore] = useState<Chore | null>(null)
 
   // Merge newly added chores when the server refreshes the prop.
   // Only appends items whose IDs aren't already in local state so optimistic
@@ -315,6 +367,11 @@ export function ChoreBoard({
     router.refresh()
   }
 
+  function handleSaved(updated: Chore & { lastCompleted: string | null }) {
+    setChores((prev) => prev.map((c) => (c.id === updated.id ? updated : c)))
+    setEditingChore(null)
+  }
+
   function saveOrder(newDue: Chore[], newDone: Chore[]) {
     const order = [...newDue, ...newDone].map((c) => c.id)
     fetch("/api/chores", {
@@ -344,44 +401,56 @@ export function ChoreBoard({
   }
 
   return (
-    <div className="space-y-6">
-      {due.length > 0 && (
-        <div>
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
-            Needs Doing · {due.length}
-          </h2>
-          <SortableSection
-            items={due}
-            overdue={true}
-            canManage={canManage}
-            userId={userId}
-            completing={completing}
-            deleting={deleting}
-            onComplete={completeChore}
-            onDelete={deleteChore}
-            onReorder={handleDueReorder}
-          />
-        </div>
-      )}
+    <>
+      <div className="space-y-6">
+        {due.length > 0 && (
+          <div>
+            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
+              Needs Doing · {due.length}
+            </h2>
+            <SortableSection
+              items={due}
+              overdue={true}
+              canManage={canManage}
+              userId={userId}
+              completing={completing}
+              deleting={deleting}
+              onComplete={completeChore}
+              onDelete={deleteChore}
+              onEdit={setEditingChore}
+              onReorder={handleDueReorder}
+            />
+          </div>
+        )}
 
-      {done.length > 0 && (
-        <div>
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
-            All Good · {done.length}
-          </h2>
-          <SortableSection
-            items={done}
-            overdue={false}
-            canManage={canManage}
-            userId={userId}
-            completing={completing}
-            deleting={deleting}
-            onComplete={completeChore}
-            onDelete={deleteChore}
-            onReorder={handleDoneReorder}
-          />
-        </div>
-      )}
-    </div>
+        {done.length > 0 && (
+          <div>
+            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
+              All Good · {done.length}
+            </h2>
+            <SortableSection
+              items={done}
+              overdue={false}
+              canManage={canManage}
+              userId={userId}
+              completing={completing}
+              deleting={deleting}
+              onComplete={completeChore}
+              onDelete={deleteChore}
+              onEdit={setEditingChore}
+              onReorder={handleDoneReorder}
+            />
+          </div>
+        )}
+      </div>
+
+      <ChoreEditModal
+        key={editingChore?.id ?? "none"}
+        chore={editingChore}
+        users={users}
+        onClose={() => setEditingChore(null)}
+        onSaved={handleSaved}
+      />
+    </>
   )
 }

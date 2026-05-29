@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json()
-  const { title, frequency, pointValue, assigneeId } = body
+  const { title, frequency, pointValue, assigneeId, dueBy } = body
 
   if (!title?.trim()) {
     return NextResponse.json({ error: "Title is required" }, { status: 400 })
@@ -41,6 +41,7 @@ export async function POST(req: Request) {
       frequency: frequency ?? "ONE_TIME",
       pointValue: pointValue ?? 1,
       sortOrder,
+      dueBy: dueBy ? new Date(dueBy) : null,
       assigneeId: assigneeId || null,
     },
     include: { assignee: { select: { id: true, name: true, avatarColor: true } } },

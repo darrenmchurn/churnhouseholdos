@@ -28,7 +28,8 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
           ...("title" in body && { title: body.title }),
           ...("frequency" in body && { frequency: body.frequency }),
           ...("pointValue" in body && { pointValue: body.pointValue }),
-          ...("assigneeId" in body && { assigneeId: body.assigneeId }),
+          ...("assigneeId" in body && { assigneeId: body.assigneeId || null }),
+          ...("dueBy" in body && { dueBy: body.dueBy ? new Date(body.dueBy) : null }),
           ...("complete" in body && body.complete && { lastCompleted: new Date() }),
         }
       : { lastCompleted: new Date() },
@@ -48,7 +49,11 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
     await logActivity(userId, "updated", "chore", chore.title)
   }
 
-  return NextResponse.json(updated)
+  return NextResponse.json({
+    ...updated,
+    dueBy: updated.dueBy ? updated.dueBy.toISOString() : null,
+    lastCompleted: updated.lastCompleted ? updated.lastCompleted.toISOString() : null,
+  })
 }
 
 export async function DELETE(_req: Request, props: { params: Promise<{ id: string }> }) {
