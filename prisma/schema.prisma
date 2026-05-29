@@ -42,6 +42,7 @@ model User {
   assignedTasks     Task[]             @relation("TaskAssignee")
   createdTasks      Task[]             @relation("TaskCreator")
   assignedChores    Chore[]            @relation("ChoreAssignee")
+  completedChores   Chore[]            @relation("ChoreCompleter")
   createdEvents     Event[]
   groceryItems      GroceryItem[]
   announcements     Announcement[]
@@ -79,8 +80,10 @@ model Chore {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  assigneeId String?
-  assignee   User?   @relation("ChoreAssignee", fields: [assigneeId], references: [id])
+  assigneeId    String?
+  assignee      User?   @relation("ChoreAssignee",   fields: [assigneeId],    references: [id])
+  completedById String?
+  completedBy   User?   @relation("ChoreCompleter",  fields: [completedById], references: [id])
 }
 
 model Event {

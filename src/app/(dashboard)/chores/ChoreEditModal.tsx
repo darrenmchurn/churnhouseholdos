@@ -11,6 +11,7 @@ type Chore = {
   frequency: string
   pointValue: number
   dueBy: string | null
+  completedById: string | null
   assignee: { id: string; name: string; avatarColor: string } | null
 }
 

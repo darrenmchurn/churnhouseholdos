@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { CheckCircle2, Trash2, Star, GripVertical, Pencil } from "lucide-react"
+import { CheckCircle2, Trash2, Star, GripVertical, Pencil, RotateCcw } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
   DndContext,
@@ -33,6 +33,7 @@ type Chore = {
   pointValue: number
   dueBy: string | null
   lastCompleted: string | null
+  completedById: string | null
   assignee: Assignee | null
 }
 
@@ -100,9 +101,12 @@ function SortableChoreCard({
   overdue,
   canManage,
   canComplete,
+  canUndo,
   completing,
+  undoing,
   deleting,
   onComplete,
+  onUndo,
   onDelete,
   onEdit,
 }: {
@@ -110,9 +114,12 @@ function SortableChoreCard({
   overdue: boolean
   canManage: boolean
   canComplete: boolean
+  canUndo: boolean
   completing: string | null
+  undoing: string | null
   deleting: string | null
   onComplete: (id: string) => void
+  onUndo: (id: string) => void
   onDelete: (id: string) => void
   onEdit: (chore: Chore) => void
 }) {
@@ -233,6 +240,21 @@ function SortableChoreCard({
             Mark Done
           </button>
         )}
+
+        {/* Undo button — only on completed chores when user can undo */}
+        {canUndo && !overdue && (
+          <button
+            onClick={() => onUndo(chore.id)}
+            disabled={undoing === chore.id}
+            className={cn(
+              "w-full h-10 rounded-xl flex items-center justify-center gap-2 text-sm font-medium text-slate-500 bg-slate-100 hover:bg-slate-200 transition-colors",
+              undoing === chore.id && "opacity-50"
+            )}
+          >
+            <RotateCcw size={15} />
+            {undoing === chore.id ? "Undoing…" : "Undo"}
+          </button>
+        )}
       </div>
     </div>
   )
@@ -246,8 +268,10 @@ function SortableSection({
   canManage,
   userId,
   completing,
+  undoing,
   deleting,
   onComplete,
+  onUndo,
   onDelete,
   onEdit,
   onReorder,
@@ -257,8 +281,10 @@ function SortableSection({
   canManage: boolean
   userId: string
   completing: string | null
+  undoing: string | null
   deleting: string | null
   onComplete: (id: string) => void
+  onUndo: (id: string) => void
   onDelete: (id: string) => void
   onEdit: (chore: Chore) => void
   onReorder: (newItems: Chore[]) => void
@@ -299,9 +325,12 @@ function SortableSection({
               overdue={overdue}
               canManage={canManage}
               canComplete={canManage || chore.assignee?.id === userId}
+              canUndo={canManage || chore.completedById === userId}
               completing={completing}
+              undoing={undoing}
               deleting={deleting}
               onComplete={onComplete}
+              onUndo={onUndo}
               onDelete={onDelete}
               onEdit={onEdit}
             />
@@ -328,7 +357,8 @@ export function ChoreBoard({
   const router = useRouter()
   const [chores, setChores] = useState(initial)
   const [completing, setCompleting] = useState<string | null>(null)
-  const [deleting, setDeleting] = useState<string | null>(null)
+  const [undoing, setUndoing]       = useState<string | null>(null)
+  const [deleting, setDeleting]     = useState<string | null>(null)
   const [editingChore, setEditingChore] = useState<Chore | null>(null)
 
   // Merge newly added chores when the server refreshes the prop.
@@ -356,6 +386,21 @@ export function ChoreBoard({
       body: JSON.stringify({ complete: true }),
     })
     setCompleting(null)
+    router.refresh()
+  }
+
+  async function undoChore(id: string) {
+    setUndoing(id)
+    // Optimistic: clear completion so the chore moves back to "Needs Doing"
+    setChores((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, lastCompleted: null, completedById: null } : c))
+    )
+    await fetch(`/api/chores/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ undo: true }),
+    })
+    setUndoing(null)
     router.refresh()
   }
 
@@ -414,8 +459,10 @@ export function ChoreBoard({
               canManage={canManage}
               userId={userId}
               completing={completing}
+              undoing={undoing}
               deleting={deleting}
               onComplete={completeChore}
+              onUndo={undoChore}
               onDelete={deleteChore}
               onEdit={setEditingChore}
               onReorder={handleDueReorder}
@@ -434,8 +481,10 @@ export function ChoreBoard({
               canManage={canManage}
               userId={userId}
               completing={completing}
+              undoing={undoing}
               deleting={deleting}
               onComplete={completeChore}
+              onUndo={undoChore}
               onDelete={deleteChore}
               onEdit={setEditingChore}
               onReorder={handleDoneReorder}
