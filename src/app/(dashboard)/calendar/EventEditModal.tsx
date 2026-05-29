@@ -95,12 +95,12 @@ export function EventEditModal({ event, onClose, onSaved, onDeleted, avatarColor
           {!allDay && (
             <>
               <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">Start (CST)</label>
+                <label className="text-xs font-medium text-slate-600 block mb-1">Start (Central)</label>
                 <input type="time" value={startTime} onChange={(e) => setStart(e.target.value)}
                   className="w-full h-11 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
               </div>
               <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">End (CST)</label>
+                <label className="text-xs font-medium text-slate-600 block mb-1">End (Central)</label>
                 <input type="time" value={endTime} onChange={(e) => setEnd(e.target.value)}
                   className="w-full h-11 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
               </div>

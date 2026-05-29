@@ -41,8 +41,8 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
   }
 
   if (newPassword !== undefined) {
-    if (!newPassword || String(newPassword).length < 1) {
-      return NextResponse.json({ error: "Password cannot be empty" }, { status: 400 })
+    if (!newPassword || String(newPassword).length < 4) {
+      return NextResponse.json({ error: "Password must be at least 4 characters" }, { status: 400 })
     }
     updates.passwordHash = await bcrypt.hash(String(newPassword), 10)
   }

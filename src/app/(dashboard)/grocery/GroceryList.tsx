@@ -23,9 +23,11 @@ const CATEGORIES = [
 export function GroceryList({
   initialItems,
   canManage,
+  currentUser,
 }: {
   initialItems: GroceryItem[]
   canManage: boolean
+  currentUser: { name: string; avatarColor: string }
 }) {
   const router = useRouter()
   const [items, setItems] = useState<GroceryItem[]>(initialItems)
@@ -55,7 +57,7 @@ export function GroceryList({
       category: category.trim() || null,
       completed: false,
       createdAt: new Date().toISOString(),
-      addedBy: { name: "You", avatarColor: "#6366f1" },
+      addedBy: { name: currentUser.name, avatarColor: currentUser.avatarColor },
     }
     setItems((prev) => [optimistic, ...prev])
     setName("")

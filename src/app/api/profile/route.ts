@@ -35,8 +35,8 @@ export async function PATCH(req: NextRequest) {
     const valid = await bcrypt.compare(currentPassword, user.passwordHash)
     if (!valid) return NextResponse.json({ error: "Current password is incorrect" }, { status: 400 })
 
-    if (!newPassword || newPassword.length < 1) {
-      return NextResponse.json({ error: "New password cannot be empty" }, { status: 400 })
+    if (!newPassword || newPassword.length < 4) {
+      return NextResponse.json({ error: "New password must be at least 4 characters" }, { status: 400 })
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 10)

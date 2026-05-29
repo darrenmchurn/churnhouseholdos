@@ -12,10 +12,16 @@ export default async function GroceryPage() {
 
   const canManage = session.user.role === "ADMIN" || session.user.role === "PARENT"
 
-  const items = await prisma.groceryItem.findMany({
-    orderBy: [{ completed: "asc" }, { createdAt: "desc" }],
-    include: { addedBy: { select: { name: true, avatarColor: true } } },
-  })
+  const [currentUser, items] = await Promise.all([
+    prisma.user.findUnique({
+      where:  { id: session.user.id },
+      select: { name: true, avatarColor: true },
+    }),
+    prisma.groceryItem.findMany({
+      orderBy: [{ completed: "asc" }, { createdAt: "desc" }],
+      include: { addedBy: { select: { name: true, avatarColor: true } } },
+    }),
+  ])
 
   const pending = items.filter((i) => !i.completed).length
 
@@ -34,6 +40,7 @@ export default async function GroceryPage() {
           createdAt: i.createdAt.toISOString(),
         }))}
         canManage={canManage}
+        currentUser={currentUser ?? { name: session.user.name ?? "You", avatarColor: "#6366f1" }}
       />
     </div>
   )

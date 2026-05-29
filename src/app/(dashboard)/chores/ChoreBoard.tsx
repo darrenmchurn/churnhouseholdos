@@ -378,7 +378,7 @@ export function ChoreBoard({
   async function completeChore(id: string) {
     setCompleting(id)
     setChores((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, lastCompleted: new Date().toISOString() } : c))
+      prev.map((c) => (c.id === id ? { ...c, lastCompleted: new Date().toISOString(), completedById: userId } : c))
     )
     await fetch(`/api/chores/${id}`, {
       method: "PATCH",

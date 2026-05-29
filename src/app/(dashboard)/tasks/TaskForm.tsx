@@ -3,24 +3,26 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Modal } from "@/components/Modal"
+import { cn } from "@/lib/utils"
 
 type User = { id: string; name: string; avatarColor: string }
 
 const PRIORITIES = [
-  { value: "LOW", label: "Low", color: "text-green-600" },
+  { value: "LOW",    label: "Low",    color: "text-green-600" },
   { value: "MEDIUM", label: "Medium", color: "text-amber-600" },
-  { value: "HIGH", label: "High", color: "text-red-600" },
+  { value: "HIGH",   label: "High",   color: "text-red-600"   },
 ]
 
 export function TaskForm({ users }: { users: User[] }) {
   const router = useRouter()
-  const [open, setOpen] = useState(false)
+  const [open, setOpen]       = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError]     = useState("")
   const [form, setForm] = useState({
-    title: "",
+    title:      "",
     description: "",
-    dueDate: "",
-    priority: "MEDIUM",
+    dueDate:    "",
+    priority:   "MEDIUM",
     assigneeId: "",
   })
 
@@ -28,22 +30,37 @@ export function TaskForm({ users }: { users: User[] }) {
     setForm((f) => ({ ...f, [field]: value }))
   }
 
+  function handleClose() {
+    setOpen(false)
+    setError("")
+    setForm({ title: "", description: "", dueDate: "", priority: "MEDIUM", assigneeId: "" })
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    await fetch("/api/tasks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        assigneeId: form.assigneeId || null,
-        dueDate: form.dueDate || null,
-      }),
-    })
-    setLoading(false)
-    setOpen(false)
-    setForm({ title: "", description: "", dueDate: "", priority: "MEDIUM", assigneeId: "" })
-    router.refresh()
+    setError("")
+    try {
+      const res = await fetch("/api/tasks", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          ...form,
+          assigneeId: form.assigneeId || null,
+          dueDate:    form.dueDate || null,
+        }),
+      })
+      if (!res.ok) {
+        const d = await res.json()
+        throw new Error(d.error ?? "Failed to create task")
+      }
+      handleClose()
+      router.refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -55,7 +72,7 @@ export function TaskForm({ users }: { users: User[] }) {
         + Add Task
       </button>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="New Task">
+      <Modal open={open} onClose={handleClose} title="New Task">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="text-xs font-medium text-slate-600 block mb-1">Title *</label>
@@ -116,6 +133,10 @@ export function TaskForm({ users }: { users: User[] }) {
               ))}
             </select>
           </div>
+
+          {error && (
+            <p className={cn("text-sm font-medium text-red-600")}>{error}</p>
+          )}
 
           <button
             type="submit"

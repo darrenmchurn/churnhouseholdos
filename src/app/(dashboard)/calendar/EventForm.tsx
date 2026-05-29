@@ -11,46 +11,61 @@ type Props = {
 }
 
 export function EventForm({ defaultDate, onCreated, defaultColor, avatarColors }: Props) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen]       = useState(false)
   const [loading, setLoading] = useState(false)
-  const [allDay, setAllDay] = useState(true)
+  const [error, setError]     = useState("")
+  const [allDay, setAllDay]   = useState(true)
   const [form, setForm] = useState({
-    title: "",
+    title:       "",
     description: "",
-    color: defaultColor,
-    date: defaultDate,
-    startTime: "09:00",
-    endTime: "10:00",
+    color:       defaultColor,
+    date:        defaultDate,
+    startTime:   "09:00",
+    endTime:     "10:00",
   })
 
   function set(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }))
   }
 
+  function handleClose() {
+    setOpen(false)
+    setError("")
+    setForm((f) => ({ ...f, title: "", description: "", color: defaultColor, startTime: "09:00", endTime: "10:00" }))
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
+    setError("")
 
     const startDate = allDay ? form.date : `${form.date}T${form.startTime}:00`
     const endDate   = allDay ? form.date : `${form.date}T${form.endTime}:00`
 
-    await fetch("/api/calendar", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: form.title,
-        description: form.description || undefined,
-        color: form.color,
-        startDate,
-        endDate,
-        allDay,
-      }),
-    })
-
-    setLoading(false)
-    setOpen(false)
-    setForm((f) => ({ ...f, title: "", description: "", color: defaultColor, startTime: "09:00", endTime: "10:00" }))
-    onCreated()
+    try {
+      const res = await fetch("/api/calendar", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          title:       form.title,
+          description: form.description || undefined,
+          color:       form.color,
+          startDate,
+          endDate,
+          allDay,
+        }),
+      })
+      if (!res.ok) {
+        const d = await res.json()
+        throw new Error(d.error ?? "Failed to create event")
+      }
+      handleClose()
+      onCreated()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -62,7 +77,7 @@ export function EventForm({ defaultDate, onCreated, defaultColor, avatarColors }
         + Add Event
       </button>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="New Event">
+      <Modal open={open} onClose={handleClose} title="New Event">
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Title */}
           <div>
@@ -103,7 +118,7 @@ export function EventForm({ defaultDate, onCreated, defaultColor, avatarColors }
             {!allDay && (
               <>
                 <div>
-                  <label className="text-xs font-medium text-slate-600 block mb-1">Start (CST)</label>
+                  <label className="text-xs font-medium text-slate-600 block mb-1">Start (Central)</label>
                   <input
                     type="time"
                     value={form.startTime}
@@ -112,7 +127,7 @@ export function EventForm({ defaultDate, onCreated, defaultColor, avatarColors }
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-slate-600 block mb-1">End (CST)</label>
+                  <label className="text-xs font-medium text-slate-600 block mb-1">End (Central)</label>
                   <input
                     type="time"
                     value={form.endTime}
@@ -124,7 +139,7 @@ export function EventForm({ defaultDate, onCreated, defaultColor, avatarColors }
             )}
           </div>
 
-          {/* Colour picker — shows only colors actively used by family avatars */}
+          {/* Colour picker */}
           <div>
             <label className="text-xs font-medium text-slate-600 block mb-2">Color</label>
             <div className="flex gap-2 flex-wrap">
@@ -151,6 +166,8 @@ export function EventForm({ defaultDate, onCreated, defaultColor, avatarColors }
               placeholder="Optional details…"
             />
           </div>
+
+          {error && <p className="text-sm font-medium text-red-600">{error}</p>}
 
           <button
             type="submit"
