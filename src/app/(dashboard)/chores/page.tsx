@@ -16,7 +16,7 @@ export default async function ChoresPage() {
   const [chores, users] = await Promise.all([
     prisma.chore.findMany({
       include: { assignee: { select: { id: true, name: true, avatarColor: true } } },
-      orderBy: { createdAt: "asc" },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
     }),
     canManage
       ? prisma.user.findMany({
@@ -32,7 +32,7 @@ export default async function ChoresPage() {
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Chores</h1>
-          <p className="text-slate-500 text-sm mt-0.5">{chores.length} total</p>
+          <p className="text-slate-500 text-sm mt-0.5">{chores.length} chores</p>
         </div>
         {canManage && <ChoreForm users={users} />}
       </div>

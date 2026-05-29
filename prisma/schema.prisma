@@ -73,6 +73,7 @@ model Chore {
   title         String
   frequency     Frequency @default(WEEKLY)
   pointValue    Int       @default(1)
+  sortOrder     Int       @default(0)
   lastCompleted DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
