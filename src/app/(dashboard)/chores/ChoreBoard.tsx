@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { CheckCircle2, Trash2, Star, GripVertical } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -278,6 +278,17 @@ export function ChoreBoard({
   const [chores, setChores] = useState(initial)
   const [completing, setCompleting] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+
+  // Merge newly added chores when the server refreshes the prop.
+  // Only appends items whose IDs aren't already in local state so optimistic
+  // complete/delete/reorder updates aren't overwritten.
+  useEffect(() => {
+    setChores((prev) => {
+      const existingIds = new Set(prev.map((c) => c.id))
+      const newItems = initial.filter((c) => !existingIds.has(c.id))
+      return newItems.length > 0 ? [...prev, ...newItems] : prev
+    })
+  }, [initial])
 
   const due = chores.filter(isDue)
   const done = chores.filter((c) => !isDue(c))
