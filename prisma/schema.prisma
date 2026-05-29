@@ -50,6 +50,8 @@ model User {
   pointTransactions PointTransaction[]
   redemptions       Redemption[]
   createdPrizes     Prize[]            @relation("PrizeCreator")
+  createdMeals      Meal[]
+  mealPlanEntries   MealPlanEntry[]
 }
 
 model Task {
@@ -176,4 +178,51 @@ model Settings {
   id    String @id @default(cuid())
   key   String @unique
   value String
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+}
+
+model Meal {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  servings    Int      @default(4)
+  prepMins    Int      @default(0)
+  cookMins    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdById String
+  createdBy   User            @relation(fields: [createdById], references: [id])
+  ingredients MealIngredient[]
+  planEntries MealPlanEntry[]
+}
+
+model MealIngredient {
+  id       String  @id @default(cuid())
+  name     String
+  quantity String?
+  category String?
+
+  mealId String
+  meal   Meal   @relation(fields: [mealId], references: [id], onDelete: Cascade)
+}
+
+model MealPlanEntry {
+  id       String   @id @default(cuid())
+  date     String   // YYYY-MM-DD
+  mealType MealType
+  note     String?  // free-text override (e.g. "leftovers", "eating out")
+  createdAt DateTime @default(now())
+
+  mealId String?
+  meal   Meal?   @relation(fields: [mealId], references: [id], onDelete: SetNull)
+  userId String
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([date, mealType])
 }
