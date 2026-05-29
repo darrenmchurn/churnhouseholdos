@@ -12,6 +12,7 @@ import {
   CalendarDays,
   ShoppingCart,
   LogOut,
+  Star,
 } from "lucide-react"
 import { avatarTextColor } from "@/lib/utils"
 
@@ -31,7 +32,7 @@ export default async function DashboardPage() {
 
   // Read name + avatarColor from DB so profile changes are reflected immediately
   // (the session JWT is only updated on re-login, so session.user.name can be stale)
-  const [currentUser, taskCount, choreItems, eventCount, groceryCount, announcements] =
+  const [currentUser, taskCount, choreItems, eventCount, groceryCount, announcements, pointsAgg] =
     await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
@@ -60,6 +61,10 @@ export default async function DashboardPage() {
         orderBy: { createdAt: "desc" },
         take: 3,
       }),
+      prisma.pointTransaction.aggregate({
+        where: { userId },
+        _sum: { points: true },
+      }),
     ])
 
   // Count only chores that are currently due (mirrors ChoreBoard.isDue logic)
@@ -73,6 +78,7 @@ export default async function DashboardPage() {
 
   const name        = currentUser?.name        ?? session.user.name ?? ""
   const avatarColor = currentUser?.avatarColor ?? session.user.avatarColor ?? "#6366f1"
+  const myPoints    = pointsAgg._sum.points ?? 0
 
   // Fetch upcoming events — prefer GCal (shows all family events) with a
   // 3-second timeout, falling back to Prisma if GCal is slow or unconfigured
@@ -140,7 +146,17 @@ export default async function DashboardPage() {
             {isKiosk ? "Churn Household OS" : `Hey, ${name}!`}
           </h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {!isKiosk && (
+            <a
+              href="/prizes"
+              className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-2xl px-3 py-2 active:scale-95 transition-transform"
+              title="View prizes"
+            >
+              <Star size={14} className="text-amber-500" fill="currentColor" />
+              <span className="font-bold text-amber-700 text-sm leading-none">{myPoints}</span>
+            </a>
+          )}
           <a
             href="/profile"
             className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-lg shadow-sm active:scale-90 transition-transform ${avatarTextColor(avatarColor)}${avatarColor === "#ffffff" ? " ring-1 ring-slate-200" : ""}`}
