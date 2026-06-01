@@ -15,6 +15,7 @@ import {
   Star,
 } from "lucide-react"
 import { avatarTextColor } from "@/lib/utils"
+import { KidsZoneSection } from "./KidsZoneSection"
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -25,14 +26,15 @@ export default async function DashboardPage() {
   const todayStart = new Date(today.setHours(0, 0, 0, 0))
   const todayEnd = new Date(today.setHours(23, 59, 59, 999))
 
-  const isAdmin = role === "ADMIN"
+  const isAdmin  = role === "ADMIN"
   const isParent = role === "PARENT"
-  const isKiosk = role === "KIOSK"
+  const isKiosk  = role === "KIOSK"
+  const isChild  = role === "CHILD"
   const canSeeAll = isAdmin || isParent
 
   // Read name + avatarColor from DB so profile changes are reflected immediately
   // (the session JWT is only updated on re-login, so session.user.name can be stale)
-  const [currentUser, taskCount, choreItems, eventCount, groceryCount, announcements, pointsAgg] =
+  const [currentUser, taskCount, choreItems, eventCount, groceryCount, announcements, pointsAgg, kidsZoneTiles] =
     await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
@@ -65,6 +67,9 @@ export default async function DashboardPage() {
         where: { userId },
         _sum: { points: true },
       }),
+      isChild
+        ? prisma.kidsZoneTile.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } })
+        : Promise.resolve([]),
     ])
 
   // Count only chores that are currently due (mirrors ChoreBoard.isDue logic)
@@ -225,6 +230,9 @@ export default async function DashboardPage() {
           )
         })}
       </div>
+
+      {/* Kids Zone — Games & Learning (CHILD only) */}
+      {isChild && <KidsZoneSection tiles={kidsZoneTiles} />}
 
       {/* Upcoming events */}
       <div>

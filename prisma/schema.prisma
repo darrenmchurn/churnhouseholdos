@@ -173,6 +173,17 @@ model Redemption {
   prize   Prize  @relation(fields: [prizeId], references: [id])
 }
 
+model KidsZoneTile {
+  id        String   @id @default(cuid())
+  title     String
+  url       String
+  emoji     String   @default("🎮")
+  category  String   @default("GAMES") // "GAMES" | "LEARNING" | "VIDEOS"
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
 // Phase 5: smart home settings stored here (HA_URL, HA_TOKEN, etc.)
 model Settings {
   id    String @id @default(cuid())

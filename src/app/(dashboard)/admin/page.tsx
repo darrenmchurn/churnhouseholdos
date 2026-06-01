@@ -5,6 +5,7 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { AnnouncementManager } from "./AnnouncementManager"
 import { UserList } from "./UserList"
+import { KidsZoneTileManager } from "./KidsZoneTileManager"
 
 export default async function AdminPage() {
   const session = await auth()
@@ -14,7 +15,7 @@ export default async function AdminPage() {
 
   const isAdmin = role === "ADMIN"
 
-  const [users, announcements] = await Promise.all([
+  const [users, announcements, kidsZoneTiles] = await Promise.all([
     prisma.user.findMany({
       select: { id: true, name: true, role: true, avatarColor: true, createdAt: true },
       orderBy: { createdAt: "asc" },
@@ -23,6 +24,7 @@ export default async function AdminPage() {
       orderBy: { createdAt: "desc" },
       include: { creator: { select: { name: true, avatarColor: true } } },
     }),
+    prisma.kidsZoneTile.findMany({ orderBy: { sortOrder: "asc" } }),
   ])
 
   return (
@@ -52,6 +54,12 @@ export default async function AdminPage() {
           currentUserId={session.user.id}
           isAdmin={isAdmin}
         />
+      </section>
+
+      {/* Kids Zone Tiles */}
+      <section>
+        <h2 className="text-base font-semibold text-slate-700 mb-3">🎮 Kids Zone Tiles</h2>
+        <KidsZoneTileManager initialTiles={kidsZoneTiles} />
       </section>
 
       {/* How everything works */}
