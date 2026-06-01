@@ -78,6 +78,33 @@ function getDueBadge(dueBy: string | null): { label: string; cls: string } | nul
   return               { label: `Due ${label}`, cls: "bg-emerald-100 text-emerald-700" }
 }
 
+// ─── Month-grouping helpers ───────────────────────────────────────────────────
+
+// Works for both ISO strings and Date objects (Prisma returns Date at runtime)
+function monthKey(lastCompleted: string | Date | null): string {
+  if (!lastCompleted) return "unknown"
+  const d = new Date(lastCompleted)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+}
+
+function monthLabel(key: string): string {
+  if (key === "unknown") return "No date"
+  const [y, m] = key.split("-").map(Number)
+  return new Date(y, m - 1).toLocaleDateString("en-US", { month: "long", year: "numeric" })
+}
+
+function groupByMonth(chores: Chore[]): { key: string; label: string; items: Chore[] }[] {
+  const map = new Map<string, Chore[]>()
+  for (const c of chores) {
+    const k = monthKey(c.lastCompleted)
+    if (!map.has(k)) map.set(k, [])
+    map.get(k)!.push(c)
+  }
+  return [...map.entries()]
+    .sort(([a], [b]) => b.localeCompare(a))   // newest month first
+    .map(([key, items]) => ({ key, label: monthLabel(key), items }))
+}
+
 // ─── Compact done row ─────────────────────────────────────────────────────────
 
 function DoneChoreRow({
@@ -337,6 +364,19 @@ export function ChoreBoard({
   const [deleting,   setDeleting]   = useState<string | null>(null)
   const [editingChore, setEditingChore] = useState<Chore | null>(null)
   const [showDone, setShowDone]     = useState(() => initial.filter((c) => !isDue(c)).length <= 2)
+  // Only the most recent month starts expanded; others collapsed
+  const [expandedMonths, setExpandedMonths] = useState<Set<string>>(() => {
+    const groups = groupByMonth(initial.filter((c) => !isDue(c)))
+    return groups.length > 0 ? new Set([groups[0].key]) : new Set()
+  })
+
+  function toggleMonth(key: string) {
+    setExpandedMonths((prev) => {
+      const next = new Set(prev)
+      next.has(key) ? next.delete(key) : next.add(key)
+      return next
+    })
+  }
 
   useEffect(() => {
     setChores((prev) => {
@@ -357,7 +397,8 @@ export function ChoreBoard({
 
   async function completeChore(id: string) {
     setCompleting(id)
-    setShowDone(true)   // make sure the completed section is visible
+    setShowDone(true)
+    setExpandedMonths((prev) => new Set([...prev, monthKey(new Date().toISOString())]))
     setChores((prev) => prev.map((c) =>
       c.id === id ? { ...c, lastCompleted: new Date().toISOString(), completedById: userId } : c
     ))
@@ -437,9 +478,10 @@ export function ChoreBoard({
           </div>
         )}
 
-        {/* ── Completed — collapsible card ──────────────────────────────── */}
+        {/* ── Completed — collapsible, grouped by month ─────────────────── */}
         {done.length > 0 && (
           <div className="bg-white rounded-2xl shadow-card overflow-hidden">
+            {/* Outer header */}
             <button
               onClick={() => setShowDone((v) => !v)}
               className="w-full flex items-center gap-3 px-4 py-3"
@@ -458,19 +500,52 @@ export function ChoreBoard({
                 aria-hidden="true"
               />
             </button>
+
+            {/* Month sections */}
             {showDone && (
-              <div className="border-t border-slate-100 divide-y divide-slate-50">
-                {done.map((chore) => (
-                  <DoneChoreRow
-                    key={chore.id}
-                    chore={chore}
-                    canManage={canManage}
-                    canUndo={canManage || chore.completedById === userId}
-                    undoing={undoing}
-                    onUndo={undoChore}
-                    onEdit={setEditingChore}
-                  />
-                ))}
+              <div className="border-t border-slate-100">
+                {groupByMonth(done).map((group, i) => {
+                  const isOpen = expandedMonths.has(group.key)
+                  return (
+                    <div key={group.key} className={cn(i > 0 && "border-t border-slate-100")}>
+                      {/* Month header */}
+                      <button
+                        onClick={() => toggleMonth(group.key)}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-slate-50 transition-colors"
+                        aria-expanded={isOpen}
+                      >
+                        <span className="flex-1 text-left text-xs font-semibold text-slate-500">
+                          {group.label}
+                        </span>
+                        <span className="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">
+                          {group.items.length}
+                        </span>
+                        <ChevronDown
+                          size={13}
+                          className={cn("text-slate-300 transition-transform flex-shrink-0", isOpen && "rotate-180")}
+                          aria-hidden="true"
+                        />
+                      </button>
+
+                      {/* Chore rows for this month */}
+                      {isOpen && (
+                        <div className="divide-y divide-slate-50">
+                          {group.items.map((chore) => (
+                            <DoneChoreRow
+                              key={chore.id}
+                              chore={chore}
+                              canManage={canManage}
+                              canUndo={canManage || chore.completedById === userId}
+                              undoing={undoing}
+                              onUndo={undoChore}
+                              onEdit={setEditingChore}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>
