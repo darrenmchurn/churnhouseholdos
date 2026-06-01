@@ -25,7 +25,6 @@ import { CSS } from "@dnd-kit/utilities"
 import { ChoreEditModal } from "./ChoreEditModal"
 
 type User = { id: string; name: string; avatarColor: string }
-type Assignee = { id: string; name: string; avatarColor: string }
 type Chore = {
   id: string
   title: string
@@ -34,7 +33,8 @@ type Chore = {
   dueBy: string | null
   lastCompleted: string | null
   completedById: string | null
-  assignee: Assignee | null
+  assignee:    { id: string; name: string; avatarColor: string } | null
+  completedBy: { id: string; name: string; avatarColor: string } | null
 }
 
 const FREQ_DAYS: Record<string, number> = {
@@ -211,19 +211,38 @@ function SortableChoreCard({
             <Star size={11} fill="currentColor" />
             {chore.pointValue}
           </span>
-          {chore.assignee && (
-            <span className="flex items-center gap-1 text-xs text-slate-500">
-              <span
-                className="w-4 h-4 rounded-full inline-flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0"
-                style={{ backgroundColor: color }}
-              >
-                {chore.assignee.name[0]}
-              </span>
-              {chore.assignee.name}
-            </span>
-          )}
           <span className="text-xs text-slate-400">{lastCompletedLabel(chore.lastCompleted)}</span>
         </div>
+
+        {/* Completed by / Assigned to — shown only on done cards */}
+        {!overdue && (chore.completedBy || chore.assignee) && (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5 border-t border-slate-100 mt-1">
+            {chore.completedBy && (
+              <span className="flex items-center gap-1 text-xs text-slate-500">
+                <CheckCircle2 size={11} className="text-green-500 flex-shrink-0" />
+                <span
+                  className="w-4 h-4 rounded-full inline-flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0"
+                  style={{ backgroundColor: chore.completedBy.avatarColor }}
+                >
+                  {chore.completedBy.name[0]}
+                </span>
+                {chore.completedBy.name}
+              </span>
+            )}
+            {chore.assignee && (
+              <span className="flex items-center gap-1 text-xs text-slate-400">
+                <span className="text-slate-300">→</span>
+                <span
+                  className="w-4 h-4 rounded-full inline-flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0"
+                  style={{ backgroundColor: chore.assignee.avatarColor }}
+                >
+                  {chore.assignee.name[0]}
+                </span>
+                {chore.assignee.name}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Mark Done button — full width, only when due and user can complete */}
         {canComplete && overdue && (

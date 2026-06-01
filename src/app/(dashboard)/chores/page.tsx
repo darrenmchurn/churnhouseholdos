@@ -15,7 +15,10 @@ export default async function ChoresPage() {
 
   const [chores, users] = await Promise.all([
     prisma.chore.findMany({
-      include: { assignee: { select: { id: true, name: true, avatarColor: true } } },
+      include: {
+        assignee:    { select: { id: true, name: true, avatarColor: true } },
+        completedBy: { select: { id: true, name: true, avatarColor: true } },
+      },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
     }),
     canManage

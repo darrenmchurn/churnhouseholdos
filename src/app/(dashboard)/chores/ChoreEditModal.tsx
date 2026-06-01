@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Modal } from "@/components/Modal"
+import { X, Check } from "lucide-react"
 import { cn, chicagoToUTC, utcToChicago } from "@/lib/utils"
 
 type User = { id: string; name: string; avatarColor: string }
@@ -13,7 +14,8 @@ type Chore = {
   dueBy: string | null
   lastCompleted: string | null
   completedById: string | null
-  assignee: { id: string; name: string; avatarColor: string } | null
+  assignee:    { id: string; name: string; avatarColor: string } | null
+  completedBy: { id: string; name: string; avatarColor: string } | null
 }
 
 const FREQUENCIES = [
@@ -174,22 +176,57 @@ export function ChoreEditModal({ chore, users, onClose, onSaved }: Props) {
         {/* Completed By — only visible when the chore has been marked done */}
         {chore?.lastCompleted && (
           <div>
-            <label className="text-xs font-medium text-slate-600 block mb-1">
+            <p className="text-xs font-medium text-slate-600 mb-2">
               Completed By
               <span className="text-slate-400 font-normal ml-1">(reassigns ⭐ stars)</span>
-            </label>
-            <select
-              value={completedById ?? ""}
-              onChange={(e) => setCompletedById(e.target.value || null)}
-              className="w-full h-11 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="">— Clear completion —</option>
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {/* Clear option */}
+              <button
+                type="button"
+                onClick={() => setCompletedById(null)}
+                className={cn(
+                  "h-11 px-3 rounded-xl border-2 flex items-center gap-2 text-sm font-medium transition-colors",
+                  completedById === null
+                    ? "border-red-400 bg-red-50 text-red-700"
+                    : "border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600"
+                )}
+              >
+                {completedById === null
+                  ? <X size={14} className="flex-shrink-0" />
+                  : <X size={14} className="flex-shrink-0 opacity-50" />}
+                Clear
+              </button>
+
+              {/* One tile per user */}
               {users.map((u) => (
-                <option key={u.id} value={u.id}>{u.name}</option>
+                <button
+                  type="button"
+                  key={u.id}
+                  onClick={() => setCompletedById(u.id)}
+                  className={cn(
+                    "h-11 px-3 rounded-xl border-2 flex items-center gap-2 text-sm font-medium transition-colors",
+                    completedById === u.id
+                      ? "border-indigo-400 bg-indigo-50 text-indigo-800"
+                      : "border-slate-200 text-slate-700 hover:border-slate-300"
+                  )}
+                >
+                  <span
+                    className="w-5 h-5 rounded-full inline-flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0"
+                    style={{ backgroundColor: u.avatarColor }}
+                  >
+                    {u.name[0]}
+                  </span>
+                  <span className="truncate">{u.name}</span>
+                  {completedById === u.id && (
+                    <Check size={13} className="ml-auto flex-shrink-0 text-indigo-500" />
+                  )}
+                </button>
               ))}
-            </select>
+            </div>
+
             {completedById === null && (
-              <p className="text-xs text-amber-600 mt-1">
+              <p className="text-xs text-amber-600 mt-1.5">
                 Clearing completion will reverse the ⭐ award.
               </p>
             )}
