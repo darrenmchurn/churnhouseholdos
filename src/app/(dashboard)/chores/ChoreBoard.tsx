@@ -81,12 +81,14 @@ function getDueBadge(dueBy: string | null): { label: string; cls: string } | nul
 // ─── Compact done row ─────────────────────────────────────────────────────────
 
 function DoneChoreRow({
-  chore, canUndo, undoing, onUndo,
+  chore, canManage, canUndo, undoing, onUndo, onEdit,
 }: {
   chore: Chore
+  canManage: boolean
   canUndo: boolean
   undoing: string | null
   onUndo: (id: string) => void
+  onEdit: (chore: Chore) => void
 }) {
   return (
     <div className="flex items-center gap-3 px-4 py-2.5">
@@ -112,6 +114,15 @@ function DoneChoreRow({
           </span>
         </div>
       </div>
+      {canManage && (
+        <button
+          onClick={() => onEdit(chore)}
+          className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-300 hover:text-indigo-400 hover:bg-indigo-50 transition-colors flex-shrink-0"
+          aria-label={`Edit ${chore.title}`}
+        >
+          <Pencil size={13} />
+        </button>
+      )}
       {canUndo && (
         <button
           onClick={() => onUndo(chore.id)}
@@ -453,9 +464,11 @@ export function ChoreBoard({
                   <DoneChoreRow
                     key={chore.id}
                     chore={chore}
+                    canManage={canManage}
                     canUndo={canManage || chore.completedById === userId}
                     undoing={undoing}
                     onUndo={undoChore}
+                    onEdit={setEditingChore}
                   />
                 ))}
               </div>
