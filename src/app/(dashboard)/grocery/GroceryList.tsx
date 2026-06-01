@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { ShoppingCart, Plus, Trash2, Check, X } from "lucide-react"
+import { ShoppingCart, Plus, Trash2, Check, X, ChevronDown } from "lucide-react"
 
 type GroceryItem = {
   id: string
@@ -36,13 +36,11 @@ export function GroceryList({
   const [quantity, setQuantity] = useState("")
   const [category, setCategory] = useState("")
   const [saving, setSaving] = useState(false)
+  const [showChecked, setShowChecked] = useState(false)
   const nameRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (showForm) {
-      // Scroll the form into view without immediately triggering the keyboard
-      nameRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-    }
+    if (showForm) nameRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
   }, [showForm])
 
   async function addItem(e: React.FormEvent) {
@@ -60,9 +58,7 @@ export function GroceryList({
       addedBy: { name: currentUser.name, avatarColor: currentUser.avatarColor },
     }
     setItems((prev) => [optimistic, ...prev])
-    setName("")
-    setQuantity("")
-    setCategory("")
+    setName(""); setQuantity(""); setCategory("")
     setShowForm(false)
 
     try {
@@ -85,7 +81,8 @@ export function GroceryList({
   async function toggleItem(item: GroceryItem) {
     const next = !item.completed
     setItems((prev) => prev.map((it) => (it.id === item.id ? { ...it, completed: next } : it)))
-
+    // Auto-expand checked section when the first item is checked off
+    if (next) setShowChecked(true)
     try {
       await fetch(`/api/grocery/${item.id}`, {
         method: "PATCH",
@@ -100,25 +97,18 @@ export function GroceryList({
 
   async function deleteItem(id: string) {
     setItems((prev) => prev.filter((it) => it.id !== id))
-    try {
-      await fetch(`/api/grocery/${id}`, { method: "DELETE" })
-    } catch {
-      // item already visually removed; refresh will resync
-    }
+    try { await fetch(`/api/grocery/${id}`, { method: "DELETE" }) } catch {}
     router.refresh()
   }
 
   async function clearCompleted() {
     setItems((prev) => prev.filter((it) => !it.completed))
-    try {
-      await fetch("/api/grocery", { method: "DELETE" })
-    } catch {}
+    try { await fetch("/api/grocery", { method: "DELETE" }) } catch {}
     router.refresh()
   }
 
-  // Group uncompleted by category, then show completed at bottom
   const uncompleted = items.filter((it) => !it.completed)
-  const completed = items.filter((it) => it.completed)
+  const completed   = items.filter((it) => it.completed)
 
   // Group uncompleted by category
   const grouped: Record<string, GroceryItem[]> = {}
@@ -131,56 +121,52 @@ export function GroceryList({
 
   return (
     <div className="space-y-4">
-      {/* Add form */}
+
+      {/* ── Add form ── */}
       {showForm ? (
-        <form onSubmit={addItem} className="bg-white rounded-2xl p-4 space-y-3 shadow-card-md">
-          <div className="flex items-center justify-between mb-1">
-            <p className="font-semibold text-slate-900 text-sm">New Item</p>
-            <button type="button" onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600">
-              <X size={18} />
+        <form onSubmit={addItem} className="bg-white rounded-2xl p-4 shadow-card-md space-y-2.5">
+          <div className="flex items-center justify-between mb-0.5">
+            <p className="text-sm font-semibold text-slate-800">Add Item</p>
+            <button type="button" onClick={() => setShowForm(false)}
+              className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors">
+              <X size={16} />
             </button>
           </div>
-          <div>
-            <label className="text-xs font-medium text-slate-600 block mb-1">Item *</label>
+
+          {/* Name + optional quantity on one row */}
+          <div className="flex gap-2">
             <input
               ref={nameRef}
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Almond milk"
-              className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="Item name…"
+              className="flex-1 h-10 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <input
+              type="text"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              placeholder="Qty"
+              className="w-20 h-10 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-medium text-slate-600 block mb-1">Quantity</label>
-              <input
-                type="text"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                placeholder="e.g. 2 gallons"
-                className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-slate-600 block mb-1">Category</label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="">None</option>
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-          </div>
+
+          {/* Category */}
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-600"
+          >
+            <option value="">No category</option>
+            {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+
           <button
             type="submit"
             disabled={saving || !name.trim()}
-            className="w-full h-11 rounded-xl bg-indigo-600 text-white font-semibold text-sm disabled:opacity-50"
+            className="w-full h-10 rounded-xl bg-indigo-600 text-white font-semibold text-sm disabled:opacity-50"
           >
             {saving ? "Adding…" : "Add to List"}
           </button>
@@ -188,14 +174,13 @@ export function GroceryList({
       ) : (
         <button
           onClick={() => setShowForm(true)}
-          className="w-full h-12 rounded-xl bg-indigo-600 text-white font-semibold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform"
+          className="w-full h-11 rounded-xl bg-indigo-600 text-white font-semibold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform"
         >
-          <Plus size={18} />
-          Add Item
+          <Plus size={17} /> Add Item
         </button>
       )}
 
-      {/* Empty state */}
+      {/* ── Empty state ── */}
       {items.length === 0 && (
         <div className="bg-white rounded-2xl p-8 text-center shadow-card">
           <ShoppingCart size={32} className="mx-auto text-slate-300 mb-3" />
@@ -204,62 +189,60 @@ export function GroceryList({
         </div>
       )}
 
-      {/* Grouped uncompleted items */}
+      {/* ── Uncompleted items, grouped by category ── */}
       {sortedKeys.map((key) => (
         <div key={key}>
-          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2 px-1">{key}</p>
-          <div className="space-y-2">
+          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 px-1">{key}</p>
+          <div className="bg-white rounded-2xl shadow-card overflow-hidden divide-y divide-slate-100">
             {grouped[key].map((item) => (
-              <ItemRow
-                key={item.id}
-                item={item}
-                canManage={canManage}
-                onToggle={toggleItem}
-                onDelete={deleteItem}
-              />
+              <ItemRow key={item.id} item={item} canManage={canManage} onToggle={toggleItem} onDelete={deleteItem} />
             ))}
           </div>
         </div>
       ))}
 
-      {/* Completed section */}
+      {/* ── Checked off — collapsible ── */}
       {completed.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-2 px-1">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-              Checked off ({completed.length})
-            </p>
+        <div className="bg-white rounded-2xl shadow-card overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2.5">
+            <button
+              onClick={() => setShowChecked((v) => !v)}
+              className="flex items-center gap-2 flex-1 text-left"
+              aria-expanded={showChecked}
+            >
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                Checked off
+              </span>
+              <span className="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">{completed.length}</span>
+              <ChevronDown
+                size={13}
+                className={cn("text-slate-300 transition-transform ml-0.5", showChecked && "rotate-180")}
+                aria-hidden="true"
+              />
+            </button>
             {canManage && (
-              <button
-                onClick={clearCompleted}
-                className="text-xs text-red-500 font-medium hover:text-red-700"
-              >
+              <button onClick={clearCompleted} className="text-xs text-red-500 font-medium hover:text-red-700 ml-3">
                 Clear all
               </button>
             )}
           </div>
-          <div className="space-y-2">
-            {completed.map((item) => (
-              <ItemRow
-                key={item.id}
-                item={item}
-                canManage={canManage}
-                onToggle={toggleItem}
-                onDelete={deleteItem}
-              />
-            ))}
-          </div>
+          {showChecked && (
+            <div className="border-t border-slate-100 divide-y divide-slate-100">
+              {completed.map((item) => (
+                <ItemRow key={item.id} item={item} canManage={canManage} onToggle={toggleItem} onDelete={deleteItem} />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
   )
 }
 
+// ─── Item row ─────────────────────────────────────────────────────────────────
+
 function ItemRow({
-  item,
-  canManage,
-  onToggle,
-  onDelete,
+  item, canManage, onToggle, onDelete,
 }: {
   item: GroceryItem
   canManage: boolean
@@ -267,37 +250,47 @@ function ItemRow({
   onDelete: (id: string) => void
 }) {
   return (
-    <div className="bg-white rounded-2xl px-4 py-3 flex items-center gap-3 shadow-card">
-      {/* Checkbox */}
+    <div className="px-3 py-2.5 flex items-center gap-3 min-h-[2.75rem]">
+      {/* Square checkbox */}
       <button
         onClick={() => onToggle(item)}
         className={cn(
-          "w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors",
+          "w-5 h-5 rounded-md border-2 flex-shrink-0 flex items-center justify-center transition-colors",
           item.completed
-            ? "bg-green-500 border-green-500 text-white"
+            ? "bg-emerald-500 border-emerald-500 text-white"
             : "border-slate-300 hover:border-indigo-400"
         )}
+        aria-label={item.completed ? `Uncheck ${item.name}` : `Check off ${item.name}`}
       >
-        {item.completed && <Check size={12} strokeWidth={3} />}
+        {item.completed && <Check size={11} strokeWidth={3} />}
       </button>
 
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <p className={cn("text-sm font-medium text-slate-900 truncate", item.completed && "line-through text-slate-400")}>
-          {item.name}
-        </p>
-        {item.quantity && (
-          <p className="text-xs text-slate-500">{item.quantity}</p>
-        )}
-      </div>
+      {/* Name — flex-1 with truncate */}
+      <p className={cn(
+        "flex-1 text-sm font-medium text-slate-900 truncate",
+        item.completed && "line-through text-slate-400"
+      )}>
+        {item.name}
+      </p>
+
+      {/* Quantity — right-aligned, same row */}
+      {item.quantity && (
+        <span className={cn(
+          "text-xs text-slate-400 flex-shrink-0",
+          item.completed && "line-through"
+        )}>
+          {item.quantity}
+        </span>
+      )}
 
       {/* Delete */}
       {canManage && (
         <button
           onClick={() => onDelete(item.id)}
-          className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
+          className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
+          aria-label={`Remove ${item.name}`}
         >
-          <Trash2 size={15} />
+          <Trash2 size={13} />
         </button>
       )}
     </div>
