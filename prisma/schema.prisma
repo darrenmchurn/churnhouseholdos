@@ -61,6 +61,7 @@ model User {
   mealPlanEntries   MealPlanEntry[]
   foodLogs          FoodLog[]
   weightLogs        WeightLog[]
+  foodItems         FoodItem[]
 }
 
 model Task {
@@ -195,6 +196,24 @@ model FoodLog {
   unit      String   @default("serving")
   barcode   String?
   createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Saved food library — one entry per food the user has ever logged.
+// Barcoded items are upserted on barcode; manual items always create a new entry.
+model FoodItem {
+  id          String   @id @default(cuid())
+  name        String
+  barcode     String?
+  caloriesPer Float    @default(0)
+  proteinGPer Float    @default(0)
+  carbsGPer   Float    @default(0)
+  fatGPer     Float    @default(0)
+  unit        String   @default("serving")
+  lastUsedAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)

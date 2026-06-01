@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import {
   ChevronLeft, ChevronRight, Plus, X, Trash2,
-  Camera, Pencil, Flame, Scale,
+  Camera, Pencil, Flame, Scale, BookOpen, ArrowLeft, Search,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -27,6 +27,17 @@ type WeightEntry = {
   date: string
   weightLbs: number
   note: string | null
+}
+
+export type FoodItem = {
+  id: string
+  name: string
+  barcode: string | null
+  caloriesPer: number
+  proteinGPer: number
+  carbsGPer: number
+  fatGPer: number
+  unit: string
 }
 
 type Goals = {
@@ -402,15 +413,29 @@ export function NutritionTab({
   initialLog,
   goals,
   initialWeights,
+  initialFoods,
 }: {
   initialLog: FoodEntry[]
   goals: Goals
   initialWeights: WeightEntry[]
+  initialFoods: FoodItem[]
 }) {
   const [date, setDate] = useState(todayStr)
   const [log, setLog] = useState<FoodEntry[]>(initialLog)
   const [loading, setLoading] = useState(false)
   const [addingFor, setAddingFor] = useState<MealSection | null>(null)
+  const [savedFoods, setSavedFoods] = useState<FoodItem[]>(initialFoods)
+
+  function handleFoodSaved(food: FoodItem) {
+    setSavedFoods((prev) => {
+      const without = prev.filter((f) => f.id !== food.id)
+      return [food, ...without] // most recently used at top
+    })
+  }
+
+  function handleFoodDeleted(id: string) {
+    setSavedFoods((prev) => prev.filter((f) => f.id !== id))
+  }
 
   const isToday = date === todayStr()
 
@@ -586,7 +611,10 @@ export function NutritionTab({
         <AddFoodSheet
           date={date}
           mealType={addingFor}
+          savedFoods={savedFoods}
           onAdded={onAdded}
+          onFoodSaved={handleFoodSaved}
+          onFoodDeleted={handleFoodDeleted}
           onClose={() => setAddingFor(null)}
         />
       )}
@@ -635,17 +663,26 @@ type BarcodeResult = {
   unit?: string
 }
 
+type SheetView = "choose" | "existing" | "new"
+
 function AddFoodSheet({
   date,
   mealType,
+  savedFoods,
   onAdded,
+  onFoodSaved,
+  onFoodDeleted,
   onClose,
 }: {
   date: string
   mealType: MealSection
+  savedFoods: FoodItem[]
   onAdded: (entry: FoodEntry) => void
+  onFoodSaved: (food: FoodItem) => void
+  onFoodDeleted: (id: string) => void
   onClose: () => void
 }) {
+  const [view, setView] = useState<SheetView>(savedFoods.length > 0 ? "choose" : "new")
   const [tab, setTab] = useState<"scan" | "manual">("scan")
 
   const [name,     setName]     = useState("")
@@ -665,6 +702,71 @@ function AddFoodSheet({
   const [cameraError,  setCameraError]  = useState("")
   const videoRef     = useRef<HTMLVideoElement>(null)
   const controlsRef  = useRef<{ stop: () => void } | null>(null)
+
+  // "Existing" view state
+  const [existingSearch, setExistingSearch] = useState("")
+  const [selectedFood,   setSelectedFood]   = useState<FoodItem | null>(null)
+  const [existingQty,    setExistingQty]    = useState("1")
+  const [logginExisting, setLoggingExisting] = useState(false)
+  const [deletingFood,   setDeletingFood]   = useState<string | null>(null)
+
+  // Silent save to food library after every log
+  async function saveToLibrary(data: {
+    name: string; barcode: string | null
+    caloriesPer: number; proteinGPer: number; carbsGPer: number; fatGPer: number
+    unit: string
+  }) {
+    try {
+      const res = await fetch("/api/nutrition/foods", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+      if (res.ok) onFoodSaved(await res.json())
+    } catch { /* silent */ }
+  }
+
+  async function deleteFromLibrary(food: FoodItem) {
+    setDeletingFood(food.id)
+    try {
+      const res = await fetch(`/api/nutrition/foods/${food.id}`, { method: "DELETE" })
+      if (res.ok) onFoodDeleted(food.id)
+    } finally {
+      setDeletingFood(null)
+      if (selectedFood?.id === food.id) setSelectedFood(null)
+    }
+  }
+
+  async function logExistingFood() {
+    if (!selectedFood) return
+    setLoggingExisting(true)
+    try {
+      const qty = Number(existingQty) || 1
+      const res = await fetch("/api/nutrition/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date, mealType,
+          name:     selectedFood.name,
+          calories: selectedFood.caloriesPer * qty,
+          proteinG: selectedFood.proteinGPer * qty,
+          carbsG:   selectedFood.carbsGPer   * qty,
+          fatG:     selectedFood.fatGPer     * qty,
+          quantity: qty,
+          unit:     selectedFood.unit,
+          barcode:  selectedFood.barcode,
+        }),
+      })
+      if (!res.ok) throw new Error("Failed to log")
+      onAdded(await res.json())
+      // Bump lastUsedAt on the saved food
+      fetch(`/api/nutrition/foods/${selectedFood.id}`, { method: "PATCH" })
+        .then((r) => r.ok ? r.json() : null)
+        .then((updated) => { if (updated) onFoodSaved(updated) })
+    } finally {
+      setLoggingExisting(false)
+    }
+  }
 
   async function startScanner() {
     setCameraError("")
@@ -754,7 +856,18 @@ function AddFoodSheet({
         }),
       })
       if (!res.ok) throw new Error((await res.json()).error ?? "Failed to save")
-      onAdded(await res.json())
+      const logged = await res.json()
+      onAdded(logged)
+      // Auto-save to library so it appears in "My Foods" next time
+      saveToLibrary({
+        name:        name.trim(),
+        barcode:     barcodeInput || null,
+        caloriesPer: Number(calories) || 0,
+        proteinGPer: Number(protein)  || 0,
+        carbsGPer:   Number(carbs)    || 0,
+        fatGPer:     Number(fat)      || 0,
+        unit,
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong")
     } finally {
@@ -780,10 +893,21 @@ function AddFoodSheet({
         <div className="w-10 h-1 rounded-full bg-slate-200 mx-auto mb-4" aria-hidden="true" />
 
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-bold text-slate-900">
-            <span aria-hidden="true">{MEAL_ICON[mealType]}</span>{" "}
-            Add to {MEAL_LABEL[mealType]}
-          </h2>
+          <div className="flex items-center gap-2">
+            {(view === "existing" || (view === "new" && savedFoods.length > 0)) && (
+              <button
+                onClick={() => { setView("choose"); setSelectedFood(null); setExistingSearch("") }}
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100"
+                aria-label="Back"
+              >
+                <ArrowLeft size={16} aria-hidden="true" />
+              </button>
+            )}
+            <h2 className="text-base font-bold text-slate-900">
+              <span aria-hidden="true">{MEAL_ICON[mealType]}</span>{" "}
+              Add to {MEAL_LABEL[mealType]}
+            </h2>
+          </div>
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100"
@@ -792,6 +916,150 @@ function AddFoodSheet({
             <X size={18} aria-hidden="true" />
           </button>
         </div>
+
+        {/* ── CHOOSE view ───────────────────────────────────────────────────────── */}
+        {view === "choose" && (
+          <div className="space-y-3">
+            <button
+              onClick={() => setView("existing")}
+              className="w-full flex items-center gap-4 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded-2xl px-4 py-4 text-left transition-colors"
+            >
+              <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                <BookOpen size={20} className="text-indigo-600" aria-hidden="true" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-slate-900">My Foods</p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {savedFoods.length} saved item{savedFoods.length !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <ChevronRight size={16} className="text-slate-300 flex-shrink-0" aria-hidden="true" />
+            </button>
+
+            <button
+              onClick={() => setView("new")}
+              className="w-full flex items-center gap-4 bg-slate-50 hover:bg-orange-50 border border-slate-200 hover:border-orange-300 rounded-2xl px-4 py-4 text-left transition-colors"
+            >
+              <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
+                <Plus size={20} className="text-orange-600" aria-hidden="true" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-900">New Food</p>
+                <p className="text-xs text-slate-400 mt-0.5">Scan barcode or enter manually</p>
+              </div>
+            </button>
+          </div>
+        )}
+
+        {/* ── EXISTING view ─────────────────────────────────────────────────────── */}
+        {view === "existing" && (
+          <div className="flex-1 flex flex-col min-h-0">
+            {/* Search */}
+            <div className="relative mb-3 flex-shrink-0">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" aria-hidden="true" />
+              <input
+                type="text"
+                placeholder="Search saved foods…"
+                value={existingSearch}
+                onChange={(e) => setExistingSearch(e.target.value)}
+                className="w-full h-10 pl-9 pr-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                aria-label="Search saved foods"
+              />
+            </div>
+
+            {/* Food list */}
+            <div className="flex-1 overflow-y-auto overscroll-contain space-y-1.5 min-h-0">
+              {savedFoods
+                .filter((f) => f.name.toLowerCase().includes(existingSearch.toLowerCase()))
+                .map((food) => {
+                  const isSelected = selectedFood?.id === food.id
+                  return (
+                    <div key={food.id} className={cn(
+                      "rounded-2xl border transition-colors",
+                      isSelected ? "border-indigo-400 bg-indigo-50" : "border-slate-200 bg-white"
+                    )}>
+                      <button
+                        onClick={() => { setSelectedFood(isSelected ? null : food); setExistingQty("1") }}
+                        className="w-full text-left px-4 py-3"
+                        aria-pressed={isSelected}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-900 truncate">{food.name}</p>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                              {Math.round(food.caloriesPer)} kcal · P{Math.round(food.proteinGPer)}g ·{" "}
+                              C{Math.round(food.carbsGPer)}g · F{Math.round(food.fatGPer)}g
+                              {" · "}<span className="text-slate-300">per {food.unit}</span>
+                            </p>
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); deleteFromLibrary(food) }}
+                            disabled={deletingFood === food.id}
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-200 hover:text-red-400 hover:bg-red-50 transition-colors flex-shrink-0 mt-0.5"
+                            aria-label={`Remove ${food.name} from My Foods`}
+                          >
+                            <Trash2 size={12} aria-hidden="true" />
+                          </button>
+                        </div>
+                      </button>
+
+                      {/* Inline quantity picker when selected */}
+                      {isSelected && (
+                        <div className="px-4 pb-3 space-y-3 border-t border-indigo-100 pt-3">
+                          <div className="flex items-center gap-3">
+                            <label htmlFor="existing-qty" className="text-xs font-medium text-slate-600 flex-shrink-0">
+                              Quantity
+                            </label>
+                            <input
+                              id="existing-qty"
+                              type="number"
+                              min="0.1"
+                              step="0.1"
+                              value={existingQty}
+                              onChange={(e) => setExistingQty(e.target.value)}
+                              className="w-20 h-9 px-3 rounded-xl border border-indigo-200 text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            />
+                            <span className="text-xs text-slate-500">{food.unit}</span>
+                          </div>
+                          {/* Preview */}
+                          {Number(existingQty) > 0 && (
+                            <p className="text-xs text-indigo-600 font-medium">
+                              {Math.round(food.caloriesPer * (Number(existingQty) || 1))} kcal ·{" "}
+                              P{Math.round(food.proteinGPer * (Number(existingQty) || 1))}g ·{" "}
+                              C{Math.round(food.carbsGPer * (Number(existingQty) || 1))}g ·{" "}
+                              F{Math.round(food.fatGPer * (Number(existingQty) || 1))}g
+                            </p>
+                          )}
+                          <button
+                            onClick={logExistingFood}
+                            disabled={logginExisting || !existingQty || Number(existingQty) <= 0}
+                            className="w-full h-10 rounded-xl bg-indigo-600 text-white font-semibold text-sm disabled:opacity-50"
+                          >
+                            {logginExisting ? "Adding…" : "Add to Log"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+
+              {savedFoods.filter((f) => f.name.toLowerCase().includes(existingSearch.toLowerCase())).length === 0 && (
+                <div className="text-center py-10">
+                  <p className="text-sm text-slate-400">No matching foods</p>
+                  <button
+                    onClick={() => setView("new")}
+                    className="mt-2 text-sm text-indigo-600 font-medium"
+                  >
+                    Add a new food →
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── NEW view: scan + manual tabs ─────────────────────────────────────── */}
+        {view === "new" && (<>
 
         {/* Tab switcher */}
         <div className="flex gap-1 bg-slate-100 rounded-xl p-1 mb-4" role="tablist">
@@ -1000,6 +1268,7 @@ function AddFoodSheet({
             </button>
           </form>
         )}
+        </>)}
       </div>
     </div>
   )

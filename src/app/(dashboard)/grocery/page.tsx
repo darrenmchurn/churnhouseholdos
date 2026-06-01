@@ -18,7 +18,7 @@ export default async function GroceryPage() {
   const canManage = session.user.role === "ADMIN" || session.user.role === "PARENT"
   const today = todayStr()
 
-  const [currentUser, items, meals, todayLog, recentWeights] = await Promise.all([
+  const [currentUser, items, meals, todayLog, recentWeights, savedFoods] = await Promise.all([
     prisma.user.findUnique({
       where:  { id: session.user.id },
       select: {
@@ -47,6 +47,10 @@ export default async function GroceryPage() {
       where: { userId: session.user.id },
       orderBy: { date: "asc" },
       take: 30,
+    }),
+    prisma.foodItem.findMany({
+      where: { userId: session.user.id },
+      orderBy: { lastUsedAt: "desc" },
     }),
   ])
 
@@ -87,6 +91,7 @@ export default async function GroceryPage() {
           weightGoalLbs: currentUser?.weightGoalLbs    ?? null,
         }}
         initialWeights={recentWeights}
+        savedFoods={savedFoods}
       />
     </div>
   )
