@@ -13,7 +13,7 @@ export default async function ProfilePage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { name: true, role: true, avatarColor: true, theme: true, createdAt: true },
+    select: { name: true, role: true, avatarColor: true, theme: true, createdAt: true, dailyCalorieGoal: true, dailyProteinGoal: true, dailyCarbsGoal: true, dailyFatGoal: true },
   })
 
   if (!user) redirect("/login")
@@ -45,6 +45,12 @@ export default async function ProfilePage() {
         initialName={user.name}
         initialAvatarColor={user.avatarColor}
         initialTheme={user.theme}
+        initialGoals={{
+          calories: user.dailyCalorieGoal ?? null,
+          protein:  user.dailyProteinGoal ?? null,
+          carbs:    user.dailyCarbsGoal   ?? null,
+          fat:      user.dailyFatGoal     ?? null,
+        }}
       />
     </div>
   )

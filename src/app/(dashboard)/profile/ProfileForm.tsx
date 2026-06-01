@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { cn, avatarTextColor, AVATAR_COLORS } from "@/lib/utils"
-import { Check, Eye, EyeOff } from "lucide-react"
+import { Check, Eye, EyeOff, Flame } from "lucide-react"
 
 type Theme = {
   id: string
@@ -114,13 +114,16 @@ function ThemePreview({ t, selected, onClick }: { t: Theme; selected: boolean; o
   )
 }
 
+type Goals = { calories: number | null; protein: number | null; carbs: number | null; fat: number | null }
+
 type Props = {
   initialName: string
   initialAvatarColor: string
   initialTheme: string
+  initialGoals: Goals
 }
 
-export function ProfileForm({ initialName, initialAvatarColor, initialTheme }: Props) {
+export function ProfileForm({ initialName, initialAvatarColor, initialTheme, initialGoals }: Props) {
   const router = useRouter()
 
   // Profile section
@@ -129,6 +132,14 @@ export function ProfileForm({ initialName, initialAvatarColor, initialTheme }: P
   const [theme, setTheme] = useState(initialTheme)
   const [savingProfile, setSavingProfile] = useState(false)
   const [profileMsg, setProfileMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  // Nutrition goals section
+  const [goalCalories, setGoalCalories] = useState(String(initialGoals.calories ?? ""))
+  const [goalProtein,  setGoalProtein]  = useState(String(initialGoals.protein  ?? ""))
+  const [goalCarbs,    setGoalCarbs]    = useState(String(initialGoals.carbs    ?? ""))
+  const [goalFat,      setGoalFat]      = useState(String(initialGoals.fat      ?? ""))
+  const [savingGoals, setSavingGoals]   = useState(false)
+  const [goalsMsg, setGoalsMsg]         = useState<{ ok: boolean; text: string } | null>(null)
 
   // Password section
   const [currentPw, setCurrentPw] = useState("")
@@ -156,6 +167,31 @@ export function ProfileForm({ initialName, initialAvatarColor, initialTheme }: P
       setProfileMsg({ ok: false, text: err instanceof Error ? err.message : "Something went wrong" })
     } finally {
       setSavingProfile(false)
+    }
+  }
+
+  async function saveGoals(e: React.FormEvent) {
+    e.preventDefault()
+    setSavingGoals(true)
+    setGoalsMsg(null)
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dailyCalorieGoal: goalCalories ? Number(goalCalories) : null,
+          dailyProteinGoal: goalProtein  ? Number(goalProtein)  : null,
+          dailyCarbsGoal:   goalCarbs    ? Number(goalCarbs)    : null,
+          dailyFatGoal:     goalFat      ? Number(goalFat)      : null,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Save failed")
+      setGoalsMsg({ ok: true, text: "Goals saved!" })
+    } catch (err) {
+      setGoalsMsg({ ok: false, text: err instanceof Error ? err.message : "Something went wrong" })
+    } finally {
+      setSavingGoals(false)
     }
   }
 
@@ -266,6 +302,52 @@ export function ProfileForm({ initialName, initialAvatarColor, initialTheme }: P
           className="w-full h-12 rounded-xl bg-indigo-600 text-white font-semibold text-base disabled:opacity-50"
         >
           {savingProfile ? "Saving…" : "Save Changes"}
+        </button>
+      </form>
+
+      {/* ── Nutrition Goals form ── */}
+      <form onSubmit={saveGoals} className="bg-white rounded-2xl border border-slate-200 p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <Flame size={16} className="text-orange-500" />
+          <h2 className="text-base font-semibold text-slate-700">Daily Nutrition Goals</h2>
+        </div>
+        <p className="text-xs text-slate-400 -mt-2">
+          Leave blank to track without a goal. Used in the Nutrition tab on the Grocery page.
+        </p>
+
+        <div className="grid grid-cols-2 gap-3">
+          {([
+            { label: "Calories (kcal)", value: goalCalories, set: setGoalCalories, placeholder: "e.g. 2000" },
+            { label: "Protein (g)",     value: goalProtein,  set: setGoalProtein,  placeholder: "e.g. 150"  },
+            { label: "Carbs (g)",       value: goalCarbs,    set: setGoalCarbs,    placeholder: "e.g. 250"  },
+            { label: "Fat (g)",         value: goalFat,      set: setGoalFat,      placeholder: "e.g. 65"   },
+          ] as { label: string; value: string; set: (v: string) => void; placeholder: string }[]).map(({ label, value, set, placeholder }) => (
+            <div key={label}>
+              <label className="text-xs font-medium text-slate-600 block mb-1">{label}</label>
+              <input
+                type="number"
+                min="0"
+                value={value}
+                onChange={(e) => set(e.target.value)}
+                placeholder={placeholder}
+                className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+              />
+            </div>
+          ))}
+        </div>
+
+        {goalsMsg && (
+          <p className={cn("text-sm font-medium", goalsMsg.ok ? "text-green-600" : "text-red-600")}>
+            {goalsMsg.text}
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={savingGoals}
+          className="w-full h-11 rounded-xl bg-orange-500 text-white font-semibold text-sm disabled:opacity-50"
+        >
+          {savingGoals ? "Saving…" : "Save Goals"}
         </button>
       </form>
 

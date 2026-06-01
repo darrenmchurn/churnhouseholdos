@@ -39,6 +39,12 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  // Nutrition goals (all optional — null means "no goal set")
+  dailyCalorieGoal Int?
+  dailyProteinGoal Int?
+  dailyCarbsGoal   Int?
+  dailyFatGoal     Int?
+
   assignedTasks     Task[]             @relation("TaskAssignee")
   createdTasks      Task[]             @relation("TaskCreator")
   assignedChores    Chore[]            @relation("ChoreAssignee")
@@ -52,6 +58,7 @@ model User {
   createdPrizes     Prize[]            @relation("PrizeCreator")
   createdMeals      Meal[]
   mealPlanEntries   MealPlanEntry[]
+  foodLogs          FoodLog[]
 }
 
 model Task {
@@ -171,6 +178,24 @@ model Redemption {
   user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   prizeId String
   prize   Prize  @relation(fields: [prizeId], references: [id])
+}
+
+model FoodLog {
+  id        String   @id @default(cuid())
+  date      String   // YYYY-MM-DD (local date of consumption)
+  mealType  String   @default("SNACK") // BREAKFAST | LUNCH | DINNER | SNACK
+  name      String
+  calories  Float    @default(0)
+  proteinG  Float    @default(0)
+  carbsG    Float    @default(0)
+  fatG      Float    @default(0)
+  quantity  Float    @default(1)
+  unit      String   @default("serving")
+  barcode   String?
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model KidsZoneTile {

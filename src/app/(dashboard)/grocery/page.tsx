@@ -5,17 +5,27 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { GroceryTabs } from "./GroceryTabs"
 
+function todayStr(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+}
+
 export default async function GroceryPage() {
   const session = await auth()
   if (!session) redirect("/login")
   if (session.user.role === "KIOSK") redirect("/dashboard")
 
   const canManage = session.user.role === "ADMIN" || session.user.role === "PARENT"
+  const today = todayStr()
 
-  const [currentUser, items, meals] = await Promise.all([
+  const [currentUser, items, meals, todayLog] = await Promise.all([
     prisma.user.findUnique({
       where:  { id: session.user.id },
-      select: { name: true, avatarColor: true },
+      select: {
+        name: true, avatarColor: true,
+        dailyCalorieGoal: true, dailyProteinGoal: true,
+        dailyCarbsGoal: true, dailyFatGoal: true,
+      },
     }),
     prisma.groceryItem.findMany({
       orderBy: [{ completed: "asc" }, { createdAt: "desc" }],
@@ -27,6 +37,10 @@ export default async function GroceryPage() {
         ingredients: { orderBy: { name: "asc" } },
         createdBy: { select: { name: true, avatarColor: true } },
       },
+    }),
+    prisma.foodLog.findMany({
+      where: { userId: session.user.id, date: today },
+      orderBy: { createdAt: "asc" },
     }),
   ])
 
@@ -58,6 +72,13 @@ export default async function GroceryPage() {
         }))}
         canManage={canManage}
         currentUser={currentUser ?? { name: session.user.name ?? "You", avatarColor: "#6366f1" }}
+        initialLog={todayLog}
+        goals={{
+          calories: currentUser?.dailyCalorieGoal ?? null,
+          protein:  currentUser?.dailyProteinGoal ?? null,
+          carbs:    currentUser?.dailyCarbsGoal   ?? null,
+          fat:      currentUser?.dailyFatGoal     ?? null,
+        }}
       />
     </div>
   )

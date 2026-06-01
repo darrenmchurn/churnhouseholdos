@@ -22,7 +22,8 @@ export async function PATCH(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const body = await req.json()
-  const { name, avatarColor, theme, currentPassword, newPassword } = body
+  const { name, avatarColor, theme, currentPassword, newPassword,
+          dailyCalorieGoal, dailyProteinGoal, dailyCarbsGoal, dailyFatGoal } = body
 
   // Password change
   if (newPassword !== undefined) {
@@ -45,7 +46,13 @@ export async function PATCH(req: NextRequest) {
   }
 
   // Profile update
-  const updates: Record<string, string> = {}
+  const updates: Record<string, string | number | null> = {}
+
+  // Nutrition goals (sent as dedicated save, not part of profile form)
+  if (dailyCalorieGoal !== undefined) updates.dailyCalorieGoal = dailyCalorieGoal !== null ? Number(dailyCalorieGoal) : null
+  if (dailyProteinGoal !== undefined) updates.dailyProteinGoal = dailyProteinGoal !== null ? Number(dailyProteinGoal) : null
+  if (dailyCarbsGoal   !== undefined) updates.dailyCarbsGoal   = dailyCarbsGoal   !== null ? Number(dailyCarbsGoal)   : null
+  if (dailyFatGoal     !== undefined) updates.dailyFatGoal     = dailyFatGoal     !== null ? Number(dailyFatGoal)     : null
 
   if (name !== undefined) {
     const trimmed = name.trim()
