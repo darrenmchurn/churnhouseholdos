@@ -382,23 +382,23 @@ function MealSlot({
   const hasContent = entry?.meal || entry?.note
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 min-h-[2.75rem]">
       <span className="text-sm w-5 flex-shrink-0 text-center">{MEAL_ICON[mealType]}</span>
       {hasContent ? (
         <button
           onClick={onAdd}
-          className="flex-1 text-left min-w-0 group"
+          className="flex-1 text-left min-w-0 flex items-center self-stretch"
         >
-          <span className="text-sm text-slate-800 font-medium truncate block">
+          <span className="text-sm text-slate-800 font-medium truncate">
             {entry?.meal?.title ?? entry?.note}
           </span>
         </button>
       ) : (
         <button
           onClick={onAdd}
-          className="flex-1 text-left"
+          className="flex-1 text-left flex items-center self-stretch"
         >
-          <span className="text-sm text-slate-300 hover:text-slate-400 transition-colors">
+          <span className="text-sm text-slate-300">
             Add {MEAL_LABEL[mealType].toLowerCase()}…
           </span>
         </button>
@@ -407,7 +407,7 @@ function MealSlot({
       {hasContent && (
         <button
           onClick={onClear}
-          className="w-6 h-6 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors flex-shrink-0"
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors flex-shrink-0"
         >
           <X size={12} />
         </button>
@@ -444,9 +444,12 @@ function SlotPickerModal({
   const { day, num } = formatDay(date)
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end">
+    <div className="fixed inset-0 z-[60] flex flex-col justify-end">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-t-3xl px-4 pt-4 pb-8 max-h-[85vh] flex flex-col">
+      <div
+        className="relative bg-white rounded-t-3xl px-4 pt-4 max-h-[85vh] flex flex-col"
+        style={{ paddingBottom: "max(2rem, env(safe-area-inset-bottom))" }}
+      >
         {/* Handle */}
         <div className="w-10 h-1 rounded-full bg-slate-200 mx-auto mb-4" />
 
@@ -487,9 +490,8 @@ function SlotPickerModal({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-3 flex-shrink-0"
-              autoFocus
             />
-            <div className="flex-1 overflow-y-auto space-y-1.5 min-h-0">
+            <div className="flex-1 overflow-y-auto overscroll-contain space-y-1.5 min-h-0">
               {filtered.length === 0 ? (
                 <p className="text-sm text-slate-400 text-center py-8">No recipes yet</p>
               ) : (
@@ -528,7 +530,6 @@ function SlotPickerModal({
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 className="w-full h-11 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                autoFocus
               />
             </div>
             <button
@@ -567,9 +568,12 @@ function RecipeLibraryModal({
   )
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end">
+    <div className="fixed inset-0 z-[60] flex flex-col justify-end">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-t-3xl px-4 pt-4 pb-8 max-h-[90vh] flex flex-col">
+      <div
+        className="relative bg-white rounded-t-3xl px-4 pt-4 max-h-[90vh] flex flex-col"
+        style={{ paddingBottom: "max(2rem, env(safe-area-inset-bottom))" }}
+      >
         <div className="w-10 h-1 rounded-full bg-slate-200 mx-auto mb-4" />
 
         <div className="flex items-center justify-between mb-3">
@@ -596,7 +600,7 @@ function RecipeLibraryModal({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-2 min-h-0">
+        <div className="flex-1 overflow-y-auto overscroll-contain space-y-2 min-h-0">
           {filtered.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-sm font-medium text-slate-500">No recipes yet</p>
@@ -736,9 +740,12 @@ function MealFormModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end">
+    <div className="fixed inset-0 z-[60] flex flex-col justify-end">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-t-3xl px-4 pt-4 pb-8 max-h-[92vh] flex flex-col">
+      <div
+        className="relative bg-white rounded-t-3xl px-4 pt-4 max-h-[88vh] flex flex-col"
+        style={{ paddingBottom: "max(2rem, env(safe-area-inset-bottom))" }}
+      >
         <div className="w-10 h-1 rounded-full bg-slate-200 mx-auto mb-4" />
 
         <div className="flex items-center justify-between mb-4">
@@ -748,7 +755,7 @@ function MealFormModal({
           </button>
         </div>
 
-        <form onSubmit={handleSave} className="flex-1 overflow-y-auto space-y-4 min-h-0 pb-2">
+        <form onSubmit={handleSave} className="flex-1 overflow-y-auto overscroll-contain space-y-4 min-h-0 pb-4">
           {/* Title */}
           <div>
             <label className="text-xs font-medium text-slate-600 block mb-1">Recipe Name *</label>
@@ -819,38 +826,44 @@ function MealFormModal({
             </div>
             <div className="space-y-2">
               {ingredients.map((ing, idx) => (
-                <div key={idx} className="flex gap-1.5 items-start">
-                  <input
-                    type="text"
-                    placeholder="Ingredient"
-                    value={ing.name}
-                    onChange={(e) => updateIngredient(idx, "name", e.target.value)}
-                    className="flex-[2] h-9 px-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Qty"
-                    value={ing.quantity}
-                    onChange={(e) => updateIngredient(idx, "quantity", e.target.value)}
-                    className="w-16 h-9 px-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                  <select
-                    value={ing.category}
-                    onChange={(e) => updateIngredient(idx, "category", e.target.value)}
-                    className="w-24 h-9 px-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="">Cat.</option>
-                    {CATEGORIES.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => removeIngredient(idx)}
-                    className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
-                  >
-                    <X size={13} />
-                  </button>
+                <div key={idx} className="bg-slate-50 rounded-xl p-2 space-y-1.5">
+                  {/* Row 1: name + delete */}
+                  <div className="flex gap-1.5">
+                    <input
+                      type="text"
+                      placeholder="Ingredient name"
+                      value={ing.name}
+                      onChange={(e) => updateIngredient(idx, "name", e.target.value)}
+                      className="flex-1 h-9 px-2.5 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeIngredient(idx)}
+                      className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+                  {/* Row 2: qty + category */}
+                  <div className="flex gap-1.5">
+                    <input
+                      type="text"
+                      placeholder="Qty (e.g. 2 cups)"
+                      value={ing.quantity}
+                      onChange={(e) => updateIngredient(idx, "quantity", e.target.value)}
+                      className="flex-1 h-9 px-2.5 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <select
+                      value={ing.category}
+                      onChange={(e) => updateIngredient(idx, "category", e.target.value)}
+                      className="flex-1 h-9 px-2 rounded-lg border border-slate-200 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="">Category</option>
+                      {CATEGORIES.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               ))}
             </div>
