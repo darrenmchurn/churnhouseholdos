@@ -53,14 +53,47 @@ const THEMES: Theme[] = [
     bg: "#faf7f2", card: "#fffcf7", border: "#e8d9c8",
     accent: "#db2777", text: "#1c1917", subtext: "#78716c",
   },
+  // ── New themes ──
+  {
+    id: "ocean",
+    name: "Ocean",
+    description: "Crisp aqua background with teal accents.",
+    bg: "#edf8fa", card: "#f7fdfe", border: "#b2e8ef",
+    accent: "#0d9488", text: "#0f2b31", subtext: "#3d7888",
+  },
+  {
+    id: "rose",
+    name: "Rosé",
+    description: "Soft blush background with rose accents.",
+    bg: "#fdf2f5", card: "#fffbfc", border: "#fecdd3",
+    accent: "#e11d48", text: "#1a0508", subtext: "#7c3148",
+  },
+  {
+    id: "midnight",
+    name: "Midnight",
+    description: "Deep navy with warm gold accents.",
+    bg: "#0d1629", card: "#192336", border: "#253347",
+    accent: "#f5c518", text: "#f5f8fb", subtext: "#96acbc",
+  },
+  {
+    id: "aurora",
+    name: "Aurora",
+    description: "Deep purple with vibrant violet accents.",
+    bg: "#0b0b1f", card: "#15142e", border: "#27254a",
+    accent: "#c084fc", text: "#f6f4fc", subtext: "#9a96b8",
+  },
 ]
 
 const THEME_ICONS: Record<string, string> = {
-  default: "⚡",
-  kids:    "🎈",
-  compact: "📐",
-  dark:    "🌙",
-  classy:  "✨",
+  default:  "⚡",
+  kids:     "🎈",
+  compact:  "📐",
+  dark:     "🌙",
+  classy:   "✨",
+  ocean:    "🌊",
+  rose:     "🌹",
+  midnight: "🌃",
+  aurora:   "🌌",
 }
 
 function ThemePreview({ t, selected, onClick }: { t: Theme; selected: boolean; onClick: () => void }) {

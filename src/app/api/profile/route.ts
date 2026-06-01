@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 
-const VALID_THEMES = ["default", "kids", "compact", "dark", "classy"]
+const VALID_THEMES = ["default", "kids", "compact", "dark", "classy", "ocean", "rose", "midnight", "aurora"]
 
 export async function GET() {
   const session = await auth()

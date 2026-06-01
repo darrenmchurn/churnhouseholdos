@@ -162,6 +162,76 @@ body {
 [data-theme="dark"] .bg-white    { background-color: #18181b; }
 [data-theme="dark"] .bg-slate-50 { background-color: #09090b; }
 
+/* ═══════════════════════════════════════════
+   OCEAN THEME — crisp white with teal accent
+   Light. Inspired by coastal mornings.
+   ═══════════════════════════════════════════ */
+[data-theme="ocean"] {
+  background-color: #edf8fa;
+
+  /* Faintly aqua-tinted surfaces */
+  --color-white:    #f7fdfe;
+  --color-slate-50: #edf8fa;
+
+  /* Teal palette replaces indigo (Tailwind teal) */
+  --color-indigo-50:  #f0fdfa;
+  --color-indigo-100: #ccfbf1;
+  --color-indigo-200: #99f6e4;
+  --color-indigo-300: #5eead4;
+  --color-indigo-400: #2dd4bf;
+  --color-indigo-500: #14b8a6;
+  --color-indigo-600: #0d9488;
+  --color-indigo-700: #0f766e;
+  --color-indigo-800: #115e59;
+  --color-indigo-900: #134e4a;
+
+  /* Teal-tinted stat & badge tones */
+  --color-amber-50:   rgba(20, 184, 166, 0.08);
+  --color-amber-100:  rgba(20, 184, 166, 0.15);
+}
+
+[data-theme="ocean"] .bg-white    { background-color: #f7fdfe; }
+[data-theme="ocean"] .bg-slate-50 { background-color: #edf8fa; }
+[data-theme="ocean"] .border-slate-200 { border-color: #b2e8ef; }
+
+/* Warm card shadows for ocean */
+[data-theme="ocean"] .shadow-card    { box-shadow: 0 1px 3px  0 rgba(13,148,136,.06), 0 1px 2px -1px rgba(13,148,136,.04); }
+[data-theme="ocean"] .shadow-card-md { box-shadow: 0 2px 8px  0 rgba(13,148,136,.08), 0 1px 3px -1px rgba(13,148,136,.05); }
+[data-theme="ocean"] .shadow-card-lg { box-shadow: 0 4px 20px 0 rgba(13,148,136,.10), 0 2px 6px -2px rgba(13,148,136,.06); }
+
+
+/* ═══════════════════════════════════════════
+   ROSÉ THEME — soft blush with rose accent
+   Light. Warm and inviting.
+   ═══════════════════════════════════════════ */
+[data-theme="rose"] {
+  background-color: #fdf2f5;
+
+  --color-white:    #fffbfc;
+  --color-slate-50: #fdf2f5;
+
+  /* Rose palette (Tailwind rose) */
+  --color-indigo-50:  #fff1f2;
+  --color-indigo-100: #ffe4e6;
+  --color-indigo-200: #fecdd3;
+  --color-indigo-300: #fda4af;
+  --color-indigo-400: #fb7185;
+  --color-indigo-500: #f43f5e;
+  --color-indigo-600: #e11d48;
+  --color-indigo-700: #be123c;
+  --color-indigo-800: #9f1239;
+  --color-indigo-900: #881337;
+}
+
+[data-theme="rose"] .bg-white    { background-color: #fffbfc; }
+[data-theme="rose"] .bg-slate-50 { background-color: #fdf2f5; }
+[data-theme="rose"] .border-slate-200 { border-color: #fecdd3; }
+
+/* Rose-tinted card shadows */
+[data-theme="rose"] .shadow-card    { box-shadow: 0 1px 3px  0 rgba(225,29,72,.05), 0 1px 2px -1px rgba(225,29,72,.03); }
+[data-theme="rose"] .shadow-card-md { box-shadow: 0 2px 8px  0 rgba(225,29,72,.07), 0 1px 3px -1px rgba(225,29,72,.04); }
+[data-theme="rose"] .shadow-card-lg { box-shadow: 0 4px 20px 0 rgba(225,29,72,.09), 0 2px 6px -2px rgba(225,29,72,.05); }
+
 /* Input / select / textarea dark surfaces */
 [data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
 [data-theme="dark"] select,
@@ -223,3 +293,196 @@ body {
 [data-theme="classy"] .rounded-xl {
   box-shadow: 0 1px 6px 0 rgba(180, 120, 80, 0.08);
 }
+
+/* ═══════════════════════════════════════════
+   MIDNIGHT THEME — deep navy, warm gold
+   Dark. Sophisticated, not harsh.
+   ═══════════════════════════════════════════ */
+[data-theme="midnight"] {
+  background-color: #0d1629;
+
+  /* Navy-tinted slate (blue undertones, not zinc) */
+  --color-slate-50:  #0d1629;
+  --color-slate-100: #182033;
+  --color-slate-200: #253347;
+  --color-slate-300: #3d5068;
+  --color-slate-400: #6b8198;
+  --color-slate-500: #96acbc;
+  --color-slate-600: #c0cfda;
+  --color-slate-700: #d8e2ea;
+  --color-slate-800: #eaf0f5;
+  --color-slate-900: #f5f8fb;
+
+  /* Navy card surface */
+  --color-white: #192336;
+
+  /* Gold/amber accent (Tailwind amber, shifted warm) */
+  --color-indigo-50:  oklch(18% 0.04 78);
+  --color-indigo-100: oklch(25% 0.08 78);
+  --color-indigo-200: oklch(38% 0.13 76);
+  --color-indigo-300: oklch(55% 0.17 74);
+  --color-indigo-400: oklch(68% 0.18 72);
+  --color-indigo-500: oklch(76% 0.18 70);
+  --color-indigo-600: oklch(82% 0.17 68);
+  --color-indigo-700: oklch(87% 0.14 66);
+  --color-indigo-900: oklch(94% 0.07 64);
+
+  /* Stat card tints */
+  --color-blue-50:    rgba(245, 197, 24, 0.12);
+  --color-blue-600:   #fbbf24;
+  --color-yellow-50:  rgba(245, 197, 24, 0.12);
+  --color-yellow-600: #fbbf24;
+  --color-green-50:   rgba(34, 197, 94, 0.12);
+  --color-green-600:  #4ade80;
+  --color-pink-50:    rgba(236, 72, 153, 0.12);
+  --color-pink-600:   #f472b6;
+
+  /* Role badge tints */
+  --color-purple-100: rgba(168, 85, 247, 0.15);
+  --color-purple-700: #c084fc;
+  --color-blue-100:   rgba(59, 130, 246, 0.15);
+  --color-blue-700:   #60a5fa;
+  --color-green-100:  rgba(34, 197, 94, 0.15);
+  --color-green-700:  #4ade80;
+  --color-orange-100: rgba(249, 115, 22, 0.15);
+  --color-orange-700: #fb923c;
+
+  /* Stat card icon tones */
+  --color-blue-100:   rgba(99, 179, 237, 0.15);
+  --color-amber-100:  rgba(245, 197, 24, 0.15);
+  --color-emerald-100: rgba(52, 211, 153, 0.15);
+  --color-rose-100:   rgba(253, 112, 112, 0.15);
+  --color-amber-600:  #fbbf24;
+  --color-emerald-600: #34d399;
+  --color-rose-600:   #fd7070;
+
+  /* Error/danger */
+  --color-red-50:  rgba(239, 68, 68, 0.10);
+  --color-red-200: rgba(239, 68, 68, 0.25);
+  --color-red-500: #f87171;
+  --color-red-600: #f87171;
+  --color-red-700: #f87171;
+}
+
+[data-theme="midnight"] .bg-white    { background-color: #192336; }
+[data-theme="midnight"] .bg-slate-50 { background-color: #0d1629; }
+
+[data-theme="midnight"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+[data-theme="midnight"] select,
+[data-theme="midnight"] textarea {
+  background-color: #1f2e44;
+  color: #f5f8fb;
+  border-color: #253347;
+}
+[data-theme="midnight"] input::placeholder,
+[data-theme="midnight"] textarea::placeholder {
+  color: #4a6277;
+}
+
+/* Gold glow on active nav icon */
+[data-theme="midnight"] nav .text-indigo-600 {
+  filter: drop-shadow(0 0 6px oklch(82% 0.17 68));
+}
+
+/* Navy shadows */
+[data-theme="midnight"] .shadow-card    { box-shadow: 0 1px 3px  0 rgba(0,0,0,.50); }
+[data-theme="midnight"] .shadow-card-md { box-shadow: 0 2px 8px  0 rgba(0,0,0,.55); }
+[data-theme="midnight"] .shadow-card-lg { box-shadow: 0 4px 20px 0 rgba(0,0,0,.60); }
+[data-theme="midnight"] .shadow-sm      { box-shadow: 0 1px 3px  0 rgba(0,0,0,.50); }
+
+
+/* ═══════════════════════════════════════════
+   AURORA THEME — deep purple, vibrant violet
+   Dark. Mystical and vivid.
+   ═══════════════════════════════════════════ */
+[data-theme="aurora"] {
+  background-color: #0b0b1f;
+
+  /* Purple-tinted dark surfaces */
+  --color-slate-50:  #0b0b1f;
+  --color-slate-100: #15142e;
+  --color-slate-200: #27254a;
+  --color-slate-300: #3d3a62;
+  --color-slate-400: #696688;
+  --color-slate-500: #9a96b8;
+  --color-slate-600: #c2bfda;
+  --color-slate-700: #d9d6ed;
+  --color-slate-800: #ece9f7;
+  --color-slate-900: #f6f4fc;
+
+  /* Deep purple card surface */
+  --color-white: #15142e;
+
+  /* Violet/purple accent */
+  --color-indigo-50:  oklch(15% 0.06 290);
+  --color-indigo-100: oklch(22% 0.11 290);
+  --color-indigo-200: oklch(33% 0.18 290);
+  --color-indigo-300: oklch(51% 0.24 290);
+  --color-indigo-400: oklch(64% 0.26 290);
+  --color-indigo-500: oklch(72% 0.26 290);
+  --color-indigo-600: oklch(78% 0.24 290);
+  --color-indigo-700: oklch(84% 0.20 290);
+  --color-indigo-900: oklch(93% 0.09 290);
+
+  /* Stat card tints */
+  --color-blue-50:    rgba(167, 139, 250, 0.12);
+  --color-blue-600:   #a78bfa;
+  --color-yellow-50:  rgba(234, 179, 8, 0.12);
+  --color-yellow-600: #facc15;
+  --color-green-50:   rgba(34, 197, 94, 0.12);
+  --color-green-600:  #4ade80;
+  --color-pink-50:    rgba(236, 72, 153, 0.12);
+  --color-pink-600:   #f472b6;
+
+  /* Role badge tints */
+  --color-purple-100: rgba(168, 85, 247, 0.20);
+  --color-purple-700: #d8b4fe;
+  --color-blue-100:   rgba(59, 130, 246, 0.15);
+  --color-blue-700:   #93c5fd;
+  --color-green-100:  rgba(34, 197, 94, 0.15);
+  --color-green-700:  #6ee7b7;
+  --color-orange-100: rgba(249, 115, 22, 0.15);
+  --color-orange-700: #fdba74;
+
+  /* Stat card icon tones */
+  --color-blue-100:   rgba(139, 92, 246, 0.18);
+  --color-amber-100:  rgba(245, 197, 24, 0.15);
+  --color-emerald-100: rgba(52, 211, 153, 0.15);
+  --color-rose-100:   rgba(251, 113, 133, 0.15);
+  --color-amber-600:  #fcd34d;
+  --color-emerald-600: #34d399;
+  --color-rose-600:   #fb7185;
+
+  /* Error/danger */
+  --color-red-50:  rgba(239, 68, 68, 0.10);
+  --color-red-200: rgba(239, 68, 68, 0.25);
+  --color-red-500: #f87171;
+  --color-red-600: #f87171;
+  --color-red-700: #f87171;
+}
+
+[data-theme="aurora"] .bg-white    { background-color: #15142e; }
+[data-theme="aurora"] .bg-slate-50 { background-color: #0b0b1f; }
+
+[data-theme="aurora"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+[data-theme="aurora"] select,
+[data-theme="aurora"] textarea {
+  background-color: #1d1c36;
+  color: #f6f4fc;
+  border-color: #27254a;
+}
+[data-theme="aurora"] input::placeholder,
+[data-theme="aurora"] textarea::placeholder {
+  color: #4d4a70;
+}
+
+/* Violet glow on active nav icon */
+[data-theme="aurora"] nav .text-indigo-600 {
+  filter: drop-shadow(0 0 6px oklch(78% 0.24 290));
+}
+
+/* Deep purple shadows */
+[data-theme="aurora"] .shadow-card    { box-shadow: 0 1px 3px  0 rgba(0,0,0,.55); }
+[data-theme="aurora"] .shadow-card-md { box-shadow: 0 2px 8px  0 rgba(0,0,0,.60); }
+[data-theme="aurora"] .shadow-card-lg { box-shadow: 0 4px 20px 0 rgba(0,0,0,.65); }
+[data-theme="aurora"] .shadow-sm      { box-shadow: 0 1px 3px  0 rgba(0,0,0,.55); }
