@@ -342,6 +342,7 @@ export function ChoreBoard({
 
   async function completeChore(id: string) {
     setCompleting(id)
+    setShowDone(true)   // make sure the completed section is visible
     setChores((prev) => prev.map((c) =>
       c.id === id ? { ...c, lastCompleted: new Date().toISOString(), completedById: userId } : c
     ))

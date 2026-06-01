@@ -28,7 +28,10 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
     const updated = await prisma.chore.update({
       where: { id },
       data:  { lastCompleted: null, completedById: null },
-      include: { assignee: { select: { id: true, name: true, avatarColor: true } } },
+      include: {
+        assignee:    { select: { id: true, name: true, avatarColor: true } },
+        completedBy: { select: { id: true, name: true, avatarColor: true } },
+      },
     })
 
     // Reverse the points that were awarded
@@ -42,9 +45,10 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
 
     return NextResponse.json({
       ...updated,
-      dueBy:         updated.dueBy         ? updated.dueBy.toISOString()         : null,
+      dueBy:         updated.dueBy ? updated.dueBy.toISOString() : null,
       lastCompleted: null,
       completedById: null,
+      completedBy:   null,
     })
   }
 
@@ -99,7 +103,10 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
         lastCompleted: newLastCompleted,
         completedById: newCompleter,
       },
-      include: { assignee: { select: { id: true, name: true, avatarColor: true } } },
+      include: {
+        assignee:    { select: { id: true, name: true, avatarColor: true } },
+        completedBy: { select: { id: true, name: true, avatarColor: true } },
+      },
     })
 
     await logActivity(userId, "updated", "chore", chore.title)
