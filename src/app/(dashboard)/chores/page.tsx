@@ -31,11 +31,11 @@ export default async function ChoresPage() {
   ])
 
   return (
-    <div className="px-4 pt-6 pb-4 max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-5">
+    <div className="px-4 pt-4 pb-4 max-w-2xl mx-auto">
+      <div className="flex items-center justify-between mb-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Chores</h1>
-          <p className="text-slate-500 text-sm mt-0.5">{chores.length} chores</p>
+          <h1 className="text-xl font-bold text-slate-900">Chores</h1>
+          <p className="text-slate-500 text-xs mt-0.5">{chores.length} chore{chores.length !== 1 ? "s" : ""}</p>
         </div>
         {canManage && <ChoreForm users={users} />}
       </div>

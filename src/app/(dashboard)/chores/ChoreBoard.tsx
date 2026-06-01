@@ -64,33 +64,24 @@ function lastCompletedLabel(date: string | null): string {
   return `${days}d ago`
 }
 
-// Only show a due-date badge when an explicit date is actually set.
-// A missing due date is not an error — don't flag it in red.
+// Only shows a badge when an explicit due date is actually set.
 function getDueBadge(dueBy: string | null): { label: string; cls: string } | null {
   if (!dueBy) return null
-
-  const nowMidnight = new Date()
-  nowMidnight.setHours(0, 0, 0, 0)
-  const dueMidnight = new Date(dueBy)
-  dueMidnight.setHours(0, 0, 0, 0)
+  const nowMidnight = new Date(); nowMidnight.setHours(0, 0, 0, 0)
+  const dueMidnight = new Date(dueBy); dueMidnight.setHours(0, 0, 0, 0)
   const diffDays = (dueMidnight.getTime() - nowMidnight.getTime()) / 86_400_000
-
   const label = new Date(dueBy).toLocaleDateString("en-US", {
     month: "short", day: "numeric", timeZone: "America/Chicago",
   })
-
-  if (diffDays <= 0)  return { label, cls: "bg-red-100 text-red-600" }
-  if (diffDays <= 3)  return { label, cls: "bg-amber-100 text-amber-700" }
-  return               { label, cls: "bg-emerald-100 text-emerald-700" }
+  if (diffDays <= 0)  return { label: `Due ${label}`, cls: "bg-red-100 text-red-600" }
+  if (diffDays <= 3)  return { label: `Due ${label}`, cls: "bg-amber-100 text-amber-700" }
+  return               { label: `Due ${label}`, cls: "bg-emerald-100 text-emerald-700" }
 }
 
-// ─── Compact done row (for history section) ───────────────────────────────────
+// ─── Compact done row ─────────────────────────────────────────────────────────
 
 function DoneChoreRow({
-  chore,
-  canUndo,
-  undoing,
-  onUndo,
+  chore, canUndo, undoing, onUndo,
 }: {
   chore: Chore
   canUndo: boolean
@@ -98,27 +89,26 @@ function DoneChoreRow({
   onUndo: (id: string) => void
 }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3 min-h-[3rem]">
+    <div className="flex items-center gap-3 px-4 py-2.5">
       <CheckCircle2 size={15} className="text-emerald-400 flex-shrink-0" />
       <div className="flex-1 min-w-0">
         <p className="text-sm text-slate-500 truncate">{chore.title}</p>
-        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+        <div className="flex items-center gap-1.5 mt-0.5">
           {chore.completedBy && (
             <span className="flex items-center gap-1 text-xs text-slate-400">
               <span
                 className="w-3.5 h-3.5 rounded-full inline-flex items-center justify-center text-white text-[8px] font-bold flex-shrink-0"
                 style={{ backgroundColor: chore.completedBy.avatarColor }}
                 aria-hidden="true"
-              >
-                {chore.completedBy.name[0]}
-              </span>
+              >{chore.completedBy.name[0]}</span>
               {chore.completedBy.name}
             </span>
           )}
-          <span className="text-xs text-slate-400">{lastCompletedLabel(chore.lastCompleted)}</span>
-          <span className="flex items-center gap-0.5 text-xs text-amber-500">
-            <Star size={10} fill="currentColor" />
-            {chore.pointValue}
+          <span className="text-xs text-slate-400">
+            {lastCompletedLabel(chore.lastCompleted)}
+          </span>
+          <span className="flex items-center gap-0.5 text-xs text-amber-500 ml-auto">
+            <Star size={10} fill="currentColor" />{chore.pointValue}
           </span>
         </div>
       </div>
@@ -136,17 +126,11 @@ function DoneChoreRow({
   )
 }
 
-// ─── Active sortable card ─────────────────────────────────────────────────────
+// ─── Active sortable card (compact row layout) ────────────────────────────────
 
 function SortableChoreCard({
-  chore,
-  canManage,
-  canComplete,
-  completing,
-  deleting,
-  onComplete,
-  onDelete,
-  onEdit,
+  chore, canManage, canComplete, completing, deleting,
+  onComplete, onDelete, onEdit,
 }: {
   chore: Chore
   canManage: boolean
@@ -163,8 +147,9 @@ function SortableChoreCard({
   } = useSortable({ id: chore.id, disabled: !canManage })
 
   const style = { transform: CSS.Transform.toString(transform), transition }
-  const color = chore.assignee?.avatarColor ?? "#6366f1"
-  const badge = getDueBadge(chore.dueBy)
+  const color  = chore.assignee?.avatarColor ?? "#6366f1"
+  const badge  = getDueBadge(chore.dueBy)
+  const isCompleting = completing === chore.id
 
   return (
     <div
@@ -172,108 +157,106 @@ function SortableChoreCard({
       style={style}
       {...attributes}
       className={cn(
-        "bg-white rounded-2xl p-4 flex gap-3 transition-all shadow-card-md",
+        "bg-white rounded-2xl px-3 py-2.5 flex items-center gap-3 transition-all shadow-card",
         isDragging && "shadow-card-lg scale-[1.02] opacity-95"
       )}
     >
-      {/* Drag handle */}
-      {canManage && (
-        <button
-          {...listeners}
-          className="flex-shrink-0 touch-none text-slate-200 hover:text-slate-400 cursor-grab active:cursor-grabbing pt-0.5 self-start"
-          aria-label="Drag to reorder"
-          tabIndex={-1}
-        >
-          <GripVertical size={16} />
-        </button>
-      )}
+      {/* ── Circle complete button ────────────────────────────────────────── */}
+      <button
+        onClick={() => canComplete && !isCompleting && onComplete(chore.id)}
+        disabled={!canComplete || isCompleting}
+        className={cn(
+          "w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center border-2 transition-all",
+          canComplete
+            ? "hover:opacity-75 active:scale-90"
+            : "opacity-25 cursor-default"
+        )}
+        style={{ borderColor: color }}
+        aria-label={`Mark ${chore.title} done`}
+      >
+        {isCompleting && (
+          <div
+            className="w-[18px] h-[18px] rounded-full opacity-60 animate-pulse"
+            style={{ backgroundColor: color }}
+          />
+        )}
+      </button>
 
-      {/* Main content */}
-      <div className="flex-1 min-w-0 space-y-2.5">
-
-        {/* Title row */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-slate-900 text-sm leading-snug">
-              {chore.title}
-            </p>
-            {/* Only render badge when an actual due date is set */}
-            {badge && (
-              <span className={cn("inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1.5 tracking-wide", badge.cls)}>
-                Due {badge.label}
-              </span>
-            )}
-          </div>
+      {/* ── Content ──────────────────────────────────────────────────────── */}
+      <div className="flex-1 min-w-0">
+        {/* Title + actions */}
+        <div className="flex items-center gap-1">
+          <p className="flex-1 text-sm font-semibold text-slate-900 truncate">
+            {chore.title}
+          </p>
           {canManage && (
-            <div className="flex items-center gap-1 flex-shrink-0 pt-0.5">
+            <>
               <button
                 onClick={() => onEdit(chore)}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-indigo-400 hover:bg-indigo-50 transition-colors"
+                className="w-6 h-6 flex items-center justify-center text-slate-300 hover:text-indigo-400 transition-colors flex-shrink-0"
                 aria-label="Edit chore"
               >
-                <Pencil size={13} />
+                <Pencil size={12} />
               </button>
               <button
                 onClick={() => onDelete(chore.id)}
                 disabled={deleting === chore.id}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors disabled:opacity-40"
+                className="w-6 h-6 flex items-center justify-center text-slate-300 hover:text-red-400 transition-colors flex-shrink-0 disabled:opacity-40"
                 aria-label="Delete chore"
               >
-                <Trash2 size={13} />
+                <Trash2 size={12} />
               </button>
-            </div>
+              <button
+                {...listeners}
+                className="w-6 h-6 flex items-center justify-center text-slate-200 hover:text-slate-400 cursor-grab active:cursor-grabbing flex-shrink-0 touch-none"
+                aria-label="Drag to reorder"
+                tabIndex={-1}
+              >
+                <GripVertical size={14} />
+              </button>
+            </>
           )}
         </div>
 
-        {/* Meta row */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+        {/* Meta row — single line, all inline */}
+        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+          <span className="text-xs text-slate-400">
             {FREQ_LABEL[chore.frequency] ?? chore.frequency}
           </span>
+          <span className="text-slate-300 text-xs">·</span>
           <span className="flex items-center gap-0.5 text-xs text-amber-500">
-            <Star size={10} fill="currentColor" />
-            {chore.pointValue}
+            <Star size={10} fill="currentColor" />{chore.pointValue}
           </span>
-          {chore.lastCompleted ? (
-            <span className="text-xs text-slate-400">{lastCompletedLabel(chore.lastCompleted)}</span>
-          ) : (
-            <span className="text-xs text-slate-400">Never done</span>
+          {badge && (
+            <>
+              <span className="text-slate-300 text-xs">·</span>
+              <span className={cn("text-[10px] font-semibold px-1.5 py-px rounded-full", badge.cls)}>
+                {badge.label}
+              </span>
+            </>
+          )}
+          {chore.lastCompleted && (
+            <>
+              <span className="text-slate-300 text-xs">·</span>
+              <span className="text-xs text-slate-400">{lastCompletedLabel(chore.lastCompleted)}</span>
+            </>
           )}
           {chore.assignee && (
-            <span className="flex items-center gap-1 text-xs text-slate-400 ml-auto">
-              <span
-                className="w-4 h-4 rounded-full inline-flex items-center justify-center text-white text-[9px] font-bold"
-                style={{ backgroundColor: chore.assignee.avatarColor }}
-                aria-hidden="true"
-              >
-                {chore.assignee.name[0]}
-              </span>
-              {chore.assignee.name}
+            <span
+              className="w-4 h-4 rounded-full inline-flex items-center justify-center text-white text-[9px] font-bold ml-auto flex-shrink-0"
+              style={{ backgroundColor: chore.assignee.avatarColor }}
+              aria-hidden="true"
+            >
+              {chore.assignee.name[0]}
             </span>
           )}
         </div>
-
-        {/* Mark Done — only when the user can complete this chore */}
-        {canComplete && (
-          <button
-            onClick={() => onComplete(chore.id)}
-            disabled={completing === chore.id}
-            className={cn(
-              "w-full h-9 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold text-white transition-all active:scale-[0.98]",
-              completing === chore.id && "opacity-60"
-            )}
-            style={{ backgroundColor: color }}
-          >
-            <CheckCircle2 size={15} />
-            {completing === chore.id ? "Marking…" : "Mark Done"}
-          </button>
-        )}
       </div>
     </div>
   )
 }
 
-// ─── Sortable section (due chores only) ──────────────────────────────────────
+// ─── Sortable section ─────────────────────────────────────────────────────────
 
 function SortableSection({
   items, canManage, userId, completing, deleting,
@@ -306,7 +289,7 @@ function SortableSection({
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={items.map((c) => c.id)} strategy={verticalListSortingStrategy}>
-        <div className="space-y-2.5">
+        <div className="space-y-1.5">
           {items.map((chore) => (
             <SortableChoreCard
               key={chore.id}
@@ -337,12 +320,12 @@ export function ChoreBoard({
   canManage: boolean
 }) {
   const router = useRouter()
-  const [chores, setChores]   = useState(initial)
+  const [chores, setChores]         = useState(initial)
   const [completing, setCompleting] = useState<string | null>(null)
   const [undoing,    setUndoing]    = useState<string | null>(null)
   const [deleting,   setDeleting]   = useState<string | null>(null)
   const [editingChore, setEditingChore] = useState<Chore | null>(null)
-  const [showDone, setShowDone] = useState(() => initial.filter((c) => !isDue(c)).length <= 2)
+  const [showDone, setShowDone]     = useState(() => initial.filter((c) => !isDue(c)).length <= 2)
 
   useEffect(() => {
     setChores((prev) => {
@@ -415,59 +398,48 @@ export function ChoreBoard({
 
   return (
     <>
-      <div className="space-y-5">
+      <div className="space-y-4">
 
-        {/* ── Active chores ── */}
+        {/* ── Active chores ──────────────────────────────────────────────── */}
         {due.length > 0 ? (
-          <div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-1">
-              To Do · {due.length}
-            </p>
-            <SortableSection
-              items={due}
-              canManage={canManage}
-              userId={userId}
-              completing={completing}
-              deleting={deleting}
-              onComplete={completeChore}
-              onDelete={deleteChore}
-              onEdit={setEditingChore}
-              onReorder={(newDue) => { setChores([...newDue, ...done]); saveOrder(newDue, done) }}
-            />
-          </div>
+          <SortableSection
+            items={due}
+            canManage={canManage}
+            userId={userId}
+            completing={completing}
+            deleting={deleting}
+            onComplete={completeChore}
+            onDelete={deleteChore}
+            onEdit={setEditingChore}
+            onReorder={(newDue) => { setChores([...newDue, ...done]); saveOrder(newDue, done) }}
+          />
         ) : (
-          /* All done state */
-          <div className="bg-emerald-50 rounded-2xl px-4 py-5 text-center">
-            <p className="text-2xl mb-1">🎉</p>
-            <p className="text-sm font-semibold text-emerald-800">All chores done!</p>
-            <p className="text-xs text-emerald-600 mt-0.5">Nothing left to do right now.</p>
+          <div className="bg-emerald-50 rounded-2xl px-4 py-4 text-center">
+            <p className="text-sm font-semibold text-emerald-700">🎉 All chores done!</p>
           </div>
         )}
 
-        {/* ── Completed history — collapsible summary card ── */}
+        {/* ── Completed — collapsible card ──────────────────────────────── */}
         {done.length > 0 && (
           <div className="bg-white rounded-2xl shadow-card overflow-hidden">
-            {/* Header — always visible */}
             <button
               onClick={() => setShowDone((v) => !v)}
-              className="w-full flex items-center gap-3 px-4 py-3.5"
+              className="w-full flex items-center gap-3 px-4 py-3"
               aria-expanded={showDone}
             >
-              <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                <CheckCircle2 size={13} className="text-emerald-600" />
+              <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                <CheckCircle2 size={12} className="text-emerald-600" />
               </div>
               <span className="flex-1 text-left text-sm font-semibold text-slate-700">
-                All Good
+                Completed
               </span>
-              <span className="text-xs font-medium text-slate-400 mr-1">{done.length} done</span>
+              <span className="text-xs text-slate-400 mr-1">{done.length}</span>
               <ChevronDown
-                size={15}
+                size={14}
                 className={cn("text-slate-400 transition-transform flex-shrink-0", showDone && "rotate-180")}
                 aria-hidden="true"
               />
             </button>
-
-            {/* Compact history rows */}
             {showDone && (
               <div className="border-t border-slate-100 divide-y divide-slate-50">
                 {done.map((chore) => (
