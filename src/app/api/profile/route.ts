@@ -23,7 +23,8 @@ export async function PATCH(req: NextRequest) {
 
   const body = await req.json()
   const { name, avatarColor, theme, currentPassword, newPassword,
-          dailyCalorieGoal, dailyProteinGoal, dailyCarbsGoal, dailyFatGoal } = body
+          dailyCalorieGoal, dailyProteinGoal, dailyCarbsGoal, dailyFatGoal,
+          weightGoalLbs } = body
 
   // Password change
   if (newPassword !== undefined) {
@@ -53,6 +54,7 @@ export async function PATCH(req: NextRequest) {
   if (dailyProteinGoal !== undefined) updates.dailyProteinGoal = dailyProteinGoal !== null ? Number(dailyProteinGoal) : null
   if (dailyCarbsGoal   !== undefined) updates.dailyCarbsGoal   = dailyCarbsGoal   !== null ? Number(dailyCarbsGoal)   : null
   if (dailyFatGoal     !== undefined) updates.dailyFatGoal     = dailyFatGoal     !== null ? Number(dailyFatGoal)     : null
+  if (weightGoalLbs    !== undefined) updates.weightGoalLbs    = weightGoalLbs    !== null ? Number(weightGoalLbs)    : null
 
   if (name !== undefined) {
     const trimmed = name.trim()

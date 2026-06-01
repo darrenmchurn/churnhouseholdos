@@ -36,6 +36,14 @@ type Goals = {
   protein: number | null
   carbs: number | null
   fat: number | null
+  weightGoalLbs: number | null
+}
+
+type WeightEntry = {
+  id: string
+  date: string
+  weightLbs: number
+  note: string | null
 }
 
 type Tab = "grocery" | "meals" | "nutrition"
@@ -47,6 +55,7 @@ export function GroceryTabs({
   currentUser,
   initialLog,
   goals,
+  initialWeights,
 }: {
   initialItems: GroceryItem[]
   initialMeals: Meal[]
@@ -54,6 +63,7 @@ export function GroceryTabs({
   currentUser: { name: string; avatarColor: string }
   initialLog: FoodEntry[]
   goals: Goals
+  initialWeights: WeightEntry[]
 }) {
   const [tab, setTab] = useState<Tab>("grocery")
 
@@ -99,6 +109,7 @@ export function GroceryTabs({
         <NutritionTab
           initialLog={initialLog}
           goals={goals}
+          initialWeights={initialWeights}
         />
       )}
     </div>

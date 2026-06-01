@@ -44,6 +44,7 @@ model User {
   dailyProteinGoal Int?
   dailyCarbsGoal   Int?
   dailyFatGoal     Int?
+  weightGoalLbs    Float?
 
   assignedTasks     Task[]             @relation("TaskAssignee")
   createdTasks      Task[]             @relation("TaskCreator")
@@ -59,6 +60,7 @@ model User {
   createdMeals      Meal[]
   mealPlanEntries   MealPlanEntry[]
   foodLogs          FoodLog[]
+  weightLogs        WeightLog[]
 }
 
 model Task {
@@ -196,6 +198,19 @@ model FoodLog {
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model WeightLog {
+  id         String   @id @default(cuid())
+  date       String   // YYYY-MM-DD
+  weightLbs  Float
+  note       String?
+  createdAt  DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date]) // one entry per person per day
 }
 
 model KidsZoneTile {

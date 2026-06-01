@@ -114,7 +114,7 @@ function ThemePreview({ t, selected, onClick }: { t: Theme; selected: boolean; o
   )
 }
 
-type Goals = { calories: number | null; protein: number | null; carbs: number | null; fat: number | null }
+type Goals = { calories: number | null; protein: number | null; carbs: number | null; fat: number | null; weightGoalLbs: number | null }
 
 type Props = {
   initialName: string
@@ -134,10 +134,11 @@ export function ProfileForm({ initialName, initialAvatarColor, initialTheme, ini
   const [profileMsg, setProfileMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   // Nutrition goals section
-  const [goalCalories, setGoalCalories] = useState(String(initialGoals.calories ?? ""))
-  const [goalProtein,  setGoalProtein]  = useState(String(initialGoals.protein  ?? ""))
-  const [goalCarbs,    setGoalCarbs]    = useState(String(initialGoals.carbs    ?? ""))
-  const [goalFat,      setGoalFat]      = useState(String(initialGoals.fat      ?? ""))
+  const [goalCalories,  setGoalCalories]  = useState(String(initialGoals.calories      ?? ""))
+  const [goalProtein,   setGoalProtein]   = useState(String(initialGoals.protein       ?? ""))
+  const [goalCarbs,     setGoalCarbs]     = useState(String(initialGoals.carbs         ?? ""))
+  const [goalFat,       setGoalFat]       = useState(String(initialGoals.fat           ?? ""))
+  const [goalWeightLbs, setGoalWeightLbs] = useState(String(initialGoals.weightGoalLbs ?? ""))
   const [savingGoals, setSavingGoals]   = useState(false)
   const [goalsMsg, setGoalsMsg]         = useState<{ ok: boolean; text: string } | null>(null)
 
@@ -179,10 +180,11 @@ export function ProfileForm({ initialName, initialAvatarColor, initialTheme, ini
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          dailyCalorieGoal: goalCalories ? Number(goalCalories) : null,
-          dailyProteinGoal: goalProtein  ? Number(goalProtein)  : null,
-          dailyCarbsGoal:   goalCarbs    ? Number(goalCarbs)    : null,
-          dailyFatGoal:     goalFat      ? Number(goalFat)      : null,
+          dailyCalorieGoal: goalCalories  ? Number(goalCalories)  : null,
+          dailyProteinGoal: goalProtein   ? Number(goalProtein)   : null,
+          dailyCarbsGoal:   goalCarbs     ? Number(goalCarbs)     : null,
+          dailyFatGoal:     goalFat       ? Number(goalFat)       : null,
+          weightGoalLbs:    goalWeightLbs ? Number(goalWeightLbs) : null,
         }),
       })
       const data = await res.json()
@@ -317,10 +319,11 @@ export function ProfileForm({ initialName, initialAvatarColor, initialTheme, ini
 
         <div className="grid grid-cols-2 gap-3">
           {([
-            { label: "Calories (kcal)", value: goalCalories, set: setGoalCalories, placeholder: "e.g. 2000" },
-            { label: "Protein (g)",     value: goalProtein,  set: setGoalProtein,  placeholder: "e.g. 150"  },
-            { label: "Carbs (g)",       value: goalCarbs,    set: setGoalCarbs,    placeholder: "e.g. 250"  },
-            { label: "Fat (g)",         value: goalFat,      set: setGoalFat,      placeholder: "e.g. 65"   },
+            { label: "Calories (kcal)", value: goalCalories,  set: setGoalCalories,  placeholder: "e.g. 2000" },
+            { label: "Protein (g)",     value: goalProtein,   set: setGoalProtein,   placeholder: "e.g. 150"  },
+            { label: "Carbs (g)",       value: goalCarbs,     set: setGoalCarbs,     placeholder: "e.g. 250"  },
+            { label: "Fat (g)",         value: goalFat,       set: setGoalFat,       placeholder: "e.g. 65"   },
+            { label: "Goal Weight (lbs)", value: goalWeightLbs, set: setGoalWeightLbs, placeholder: "e.g. 165" },
           ] as { label: string; value: string; set: (v: string) => void; placeholder: string }[]).map(({ label, value, set, placeholder }) => (
             <div key={label}>
               <label className="text-xs font-medium text-slate-600 block mb-1">{label}</label>

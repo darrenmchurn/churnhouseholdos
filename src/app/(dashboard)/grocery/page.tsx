@@ -18,13 +18,14 @@ export default async function GroceryPage() {
   const canManage = session.user.role === "ADMIN" || session.user.role === "PARENT"
   const today = todayStr()
 
-  const [currentUser, items, meals, todayLog] = await Promise.all([
+  const [currentUser, items, meals, todayLog, recentWeights] = await Promise.all([
     prisma.user.findUnique({
       where:  { id: session.user.id },
       select: {
         name: true, avatarColor: true,
         dailyCalorieGoal: true, dailyProteinGoal: true,
         dailyCarbsGoal: true, dailyFatGoal: true,
+        weightGoalLbs: true,
       },
     }),
     prisma.groceryItem.findMany({
@@ -41,6 +42,11 @@ export default async function GroceryPage() {
     prisma.foodLog.findMany({
       where: { userId: session.user.id, date: today },
       orderBy: { createdAt: "asc" },
+    }),
+    prisma.weightLog.findMany({
+      where: { userId: session.user.id },
+      orderBy: { date: "asc" },
+      take: 30,
     }),
   ])
 
@@ -74,11 +80,13 @@ export default async function GroceryPage() {
         currentUser={currentUser ?? { name: session.user.name ?? "You", avatarColor: "#6366f1" }}
         initialLog={todayLog}
         goals={{
-          calories: currentUser?.dailyCalorieGoal ?? null,
-          protein:  currentUser?.dailyProteinGoal ?? null,
-          carbs:    currentUser?.dailyCarbsGoal   ?? null,
-          fat:      currentUser?.dailyFatGoal     ?? null,
+          calories:      currentUser?.dailyCalorieGoal ?? null,
+          protein:       currentUser?.dailyProteinGoal ?? null,
+          carbs:         currentUser?.dailyCarbsGoal   ?? null,
+          fat:           currentUser?.dailyFatGoal     ?? null,
+          weightGoalLbs: currentUser?.weightGoalLbs    ?? null,
         }}
+        initialWeights={recentWeights}
       />
     </div>
   )
