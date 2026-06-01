@@ -42,9 +42,9 @@ const THEMES: Theme[] = [
   {
     id: "dark",
     name: "Dark",
-    description: "Black base with neon cyan accents.",
-    bg: "#09090b", card: "#18181b", border: "#3f3f46",
-    accent: "#22d3ee", text: "#fafafa", subtext: "#a1a1aa",
+    description: "True black with electric indigo accents.",
+    bg: "#050505", card: "#111111", border: "#1e1e1e",
+    accent: "#6370f5", text: "#f2f2f2", subtext: "#888888",
   },
   {
     id: "classy",

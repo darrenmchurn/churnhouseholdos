@@ -99,52 +99,61 @@ body {
 }
 
 /* ═══════════════════════════════════════════
-   DARK THEME — black base, neon cyan accent
+   DARK THEME — true black, electric indigo
+   Clean, modern. Inspired by Linear / Vercel.
    ═══════════════════════════════════════════ */
 [data-theme="dark"] {
-  background-color: #09090b;
+  background-color: #050505;
 
-  /* Remap the entire slate palette (inverted for dark) */
-  --color-slate-50:  #09090b;
-  --color-slate-100: #18181b;
-  --color-slate-200: #3f3f46;
-  --color-slate-300: #52525b;
-  --color-slate-400: #71717a;
-  --color-slate-500: #a1a1aa;
-  --color-slate-600: #d4d4d8;
-  --color-slate-700: #e4e4e7;
-  --color-slate-800: #f4f4f5;
-  --color-slate-900: #fafafa;
+  /* Pure neutral grey palette — no warm zinc undertone */
+  --color-slate-50:  #050505;   /* page bg */
+  --color-slate-100: #111111;   /* card surface */
+  --color-slate-200: #1e1e1e;   /* borders, dividers */
+  --color-slate-300: #2d2d2d;   /* subtle lines */
+  --color-slate-400: #555555;   /* muted / disabled */
+  --color-slate-500: #888888;   /* secondary text */
+  --color-slate-600: #aaaaaa;   /* tertiary labels */
+  --color-slate-700: #cccccc;   /* light labels */
+  --color-slate-800: #e0e0e0;   /* near-primary */
+  --color-slate-900: #f2f2f2;   /* primary text */
 
-  /* White → dark card surface */
-  --color-white: #18181b;
+  /* True black card surface */
+  --color-white: #111111;
 
-  /* Neon cyan replaces indigo */
-  --color-indigo-50:  oklch(20%  0.04 196);
-  --color-indigo-100: oklch(24%  0.07 196);
-  --color-indigo-200: oklch(32%  0.10 196);
-  --color-indigo-300: oklch(55%  0.14 196);
-  --color-indigo-400: oklch(65%  0.17 196);
-  --color-indigo-500: oklch(73%  0.19 196);
-  --color-indigo-600: oklch(80%  0.20 196);
-  --color-indigo-700: oklch(85%  0.18 196);
-  --color-indigo-900: oklch(93%  0.10 196);
+  /* Electric indigo-blue accent — premium, not neon (hue 256 = indigo-blue) */
+  --color-indigo-50:  oklch(12% 0.04 256);
+  --color-indigo-100: oklch(18% 0.09 256);
+  --color-indigo-200: oklch(28% 0.15 256);
+  --color-indigo-300: oklch(46% 0.21 256);
+  --color-indigo-400: oklch(58% 0.22 256);
+  --color-indigo-500: oklch(64% 0.22 256);
+  --color-indigo-600: oklch(68% 0.22 256);  /* main CTA — vivid electric indigo */
+  --color-indigo-700: oklch(75% 0.20 256);  /* hover / text accents */
+  --color-indigo-900: oklch(90% 0.09 256);  /* very light tint */
 
-  /* Stat card tints */
-  --color-blue-50:    rgba(59,  130, 246, 0.12);
-  --color-blue-600:   #60a5fa;
-  --color-yellow-50:  rgba(234, 179,   8, 0.12);
-  --color-yellow-600: #facc15;
-  --color-green-50:   rgba(34,  197,  94, 0.12);
-  --color-green-600:  #4ade80;
-  --color-pink-50:    rgba(236,  72, 153, 0.12);
-  --color-pink-600:   #f472b6;
+  /* Stat card tints (icon containers: blue-100, amber-100, emerald-100, rose-100) */
+  --color-blue-50:     rgba(99, 117, 245, 0.12);
+  --color-blue-100:    rgba(99, 117, 245, 0.15);
+  --color-blue-600:    oklch(68% 0.22 256);
+  --color-blue-700:    oklch(75% 0.20 256);
+  --color-yellow-50:   rgba(234, 179, 8, 0.12);
+  --color-amber-100:   rgba(234, 179, 8, 0.15);
+  --color-amber-600:   #fbbf24;
+  --color-yellow-600:  #facc15;
+  --color-green-50:    rgba(34, 197, 94, 0.12);
+  --color-emerald-100: rgba(34, 197, 94, 0.15);
+  --color-emerald-600: #4ade80;
+  --color-green-600:   #4ade80;
+  --color-pink-50:     rgba(236, 72, 153, 0.12);
+  --color-rose-100:    rgba(236, 72, 153, 0.15);
+  --color-rose-600:    #f472b6;
+  --color-pink-600:    #f472b6;
 
   /* Role badge tints */
   --color-purple-100: rgba(168, 85, 247, 0.15);
   --color-purple-700: #c084fc;
-  --color-blue-100:   rgba(59, 130, 246, 0.15);
-  --color-blue-700:   #60a5fa;
+  --color-blue-100:   rgba(99, 117, 245, 0.15);
+  --color-blue-700:   oklch(75% 0.20 256);
   --color-green-100:  rgba(34, 197, 94, 0.15);
   --color-green-700:  #4ade80;
   --color-orange-100: rgba(249, 115, 22, 0.15);
@@ -153,14 +162,37 @@ body {
   /* Error/danger */
   --color-red-50:  rgba(239, 68, 68, 0.10);
   --color-red-200: rgba(239, 68, 68, 0.25);
-  --color-red-700: #f87171;
   --color-red-500: #f87171;
   --color-red-600: #f87171;
+  --color-red-700: #f87171;
 }
 
-/* bg-white is sometimes hardcoded; belt + suspenders */
-[data-theme="dark"] .bg-white    { background-color: #18181b; }
-[data-theme="dark"] .bg-slate-50 { background-color: #09090b; }
+/* Hardcoded class overrides */
+[data-theme="dark"] .bg-white    { background-color: #111111; }
+[data-theme="dark"] .bg-slate-50 { background-color: #050505; }
+
+/* Input / select / textarea dark surfaces */
+[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background-color: #1a1a1a;
+  color: #f2f2f2;
+  border-color: #2d2d2d;
+}
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #444444;
+}
+
+/* Soft indigo glow on the active nav icon */
+[data-theme="dark"] nav .text-indigo-600 {
+  filter: drop-shadow(0 0 6px oklch(68% 0.22 256));
+}
+
+/* Dark shadow override for the legacy shadow-sm utility */
+[data-theme="dark"] .shadow-sm {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.7);
+}
 
 /* ═══════════════════════════════════════════
    OCEAN THEME — crisp white with teal accent
