@@ -338,7 +338,11 @@ export function ChoreBoard({
   const due  = chores.filter(isDue)
   const done = chores
     .filter((c) => !isDue(c))
-    .sort((a, b) => (b.lastCompleted ?? "").localeCompare(a.lastCompleted ?? ""))
+    .sort((a, b) => {
+      const aTime = a.lastCompleted ? new Date(a.lastCompleted).getTime() : 0
+      const bTime = b.lastCompleted ? new Date(b.lastCompleted).getTime() : 0
+      return bTime - aTime
+    })
 
   async function completeChore(id: string) {
     setCompleting(id)
