@@ -155,10 +155,10 @@ export default async function DashboardPage() {
   }
 
   const stats = [
-    { label: "Open Tasks",    value: taskCount,    icon: CheckSquare,  color: "bg-blue-50 text-blue-600",   href: "/tasks" },
-    { label: "Chores",        value: choreCount,   icon: Sparkles,     color: "bg-yellow-50 text-yellow-600", href: "/chores" },
-    { label: "Upcoming Events", value: eventCount,   icon: CalendarDays, color: "bg-green-50 text-green-600",  href: "/calendar" },
-    ...(canSeeAll ? [{ label: "Grocery Items", value: groceryCount, icon: ShoppingCart, color: "bg-pink-50 text-pink-600", href: "/grocery" }] : []),
+    { label: "Open Tasks",      value: taskCount,   icon: CheckSquare,  color: "bg-blue-100 text-blue-600",   href: "/tasks" },
+    { label: "Chores Due",      value: choreCount,  icon: Sparkles,     color: "bg-amber-100 text-amber-600", href: "/chores" },
+    { label: "Events Today",    value: eventCount,  icon: CalendarDays, color: "bg-emerald-100 text-emerald-600", href: "/calendar" },
+    ...(canSeeAll ? [{ label: "Grocery Items", value: groceryCount, icon: ShoppingCart, color: "bg-rose-100 text-rose-600", href: "/grocery" }] : []),
   ]
 
   return (
@@ -166,8 +166,8 @@ export default async function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-slate-500">{formatDate(new Date())}</p>
-          <h1 className="text-2xl font-bold text-slate-900 mt-0.5">
+          <p className="text-[11px] font-semibold tracking-widest uppercase text-slate-400">{formatDate(new Date())}</p>
+          <h1 className="text-[1.6rem] font-bold text-slate-900 mt-1 leading-tight">
             {isKiosk ? "Churn Household OS" : `Hey, ${name}!`}
           </h1>
         </div>
@@ -175,7 +175,7 @@ export default async function DashboardPage() {
           {!isKiosk && (
             <a
               href="/prizes"
-              className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-2xl px-3 py-2 active:scale-95 transition-transform"
+              className="flex items-center gap-1.5 bg-amber-50 rounded-2xl px-3 py-2 active:scale-95 transition-transform shadow-card"
               title="View prizes"
             >
               <Star size={14} className="text-amber-500" fill="currentColor" />
@@ -224,7 +224,7 @@ export default async function DashboardPage() {
       {announcements.length > 0 && (
         <div className="space-y-2">
           {announcements.map((a: { id: string; title: string; body: string; expiresAt: Date | null }) => (
-            <div key={a.id} className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4">
+            <div key={a.id} className="bg-indigo-50/70 border-l-4 border-indigo-400 rounded-2xl p-4 shadow-card">
               <p className="font-semibold text-indigo-900 text-sm">{a.title}</p>
               <p className="text-indigo-700 text-sm mt-0.5 whitespace-pre-wrap">{a.body}</p>
               {a.expiresAt && (
@@ -248,10 +248,10 @@ export default async function DashboardPage() {
             <a
               key={stat.label}
               href={stat.href}
-              className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex items-center gap-3 active:scale-95 transition-transform"
+              className="bg-white rounded-2xl p-5 shadow-card-md flex items-center gap-3 active:scale-95 transition-transform"
             >
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.color}`}>
-                <Icon size={20} />
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${stat.color}`}>
+                <Icon size={21} />
               </div>
               <div>
                 <p className="text-2xl font-bold text-slate-900 leading-none">{stat.value}</p>
@@ -269,7 +269,7 @@ export default async function DashboardPage() {
       <div>
         <h2 className="text-base font-semibold text-slate-700 mb-3">Upcoming Events</h2>
         {upcomingEvents.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 text-center">
+          <div className="bg-white rounded-2xl p-4 text-center shadow-card">
             <CalendarDays size={28} className="mx-auto text-slate-300 mb-2" />
             <p className="text-sm text-slate-500">No upcoming events</p>
             {canSeeAll && (
@@ -281,9 +281,9 @@ export default async function DashboardPage() {
         ) : (
           <div className="space-y-2">
             {upcomingEvents.map((event) => (
-              <div key={event.id} className="bg-white rounded-2xl border border-slate-200 p-4 flex items-center gap-3">
+              <div key={event.id} className="bg-white rounded-2xl p-4 flex items-center gap-3 shadow-card">
                 <div
-                  className="w-2 self-stretch rounded-full flex-shrink-0"
+                  className="w-1.5 self-stretch rounded-full flex-shrink-0 opacity-90"
                   style={{ backgroundColor: event.color }}
                 />
                 <div className="min-w-0">
@@ -318,7 +318,7 @@ export default async function DashboardPage() {
               See all →
             </a>
           </div>
-          <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
+          <div className="bg-white rounded-2xl divide-y divide-slate-100 overflow-hidden shadow-card-md">
             {recentActivity.map((log) => (
               <div key={log.id} className="px-4 py-3 flex items-center gap-3">
                 <div

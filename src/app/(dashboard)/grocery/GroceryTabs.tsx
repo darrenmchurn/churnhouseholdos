@@ -145,9 +145,9 @@ function TabButton({
     <button
       onClick={onClick}
       className={cn(
-        "flex-1 h-10 rounded-xl text-xs font-semibold flex items-center justify-center gap-1 transition-colors",
+        "flex-1 h-10 rounded-xl text-xs font-semibold flex items-center justify-center gap-1 transition-all",
         active
-          ? "bg-white text-slate-900 shadow-sm"
+          ? "bg-white text-slate-900 shadow-card-md"
           : "text-slate-500 hover:text-slate-700"
       )}
     >

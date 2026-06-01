@@ -146,9 +146,11 @@ function SortableChoreCard({
       style={style}
       {...attributes}
       className={cn(
-        "bg-white rounded-2xl border-2 p-4 flex gap-3 transition-shadow",
-        overdue ? "border-slate-200" : "border-slate-100 opacity-60",
-        isDragging && "shadow-xl opacity-80 scale-[1.01]"
+        "rounded-2xl p-4 flex gap-3 transition-all",
+        overdue
+          ? "bg-white shadow-card-md"
+          : "bg-slate-50/80 shadow-none",
+        isDragging && "shadow-card-lg scale-[1.02] opacity-95"
       )}
     >
       {/* Drag handle — only rendered for admins/parents */}
@@ -471,7 +473,7 @@ export function ChoreBoard({
       <div className="space-y-6">
         {due.length > 0 && (
           <div>
-            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
+            <h2 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-1">
               Needs Doing · {due.length}
             </h2>
             <SortableSection
@@ -498,7 +500,7 @@ export function ChoreBoard({
               className="flex items-center gap-2 w-full text-left mb-3 group"
               aria-expanded={showDone}
             >
-              <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">
+              <h2 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">
                 All Good · {done.length}
               </h2>
               <svg

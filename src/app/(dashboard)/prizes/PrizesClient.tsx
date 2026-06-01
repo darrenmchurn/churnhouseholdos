@@ -263,7 +263,7 @@ export function PrizesClient({
       </div>
 
       {/* ── Tier Progress Card ── */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
+      <div className="bg-gradient-to-br from-white via-white to-indigo-50/40 rounded-2xl p-5 space-y-3 shadow-card-lg">
         {/* Balance row */}
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
@@ -321,7 +321,7 @@ export function PrizesClient({
             onClick={() => setTab(id)}
             className={cn(
               "flex-1 flex items-center justify-center gap-1.5 h-9 rounded-xl text-sm font-medium transition-all",
-              tab === id ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              tab === id ? "bg-white text-slate-900 shadow-card-md font-semibold" : "text-slate-500 hover:text-slate-700"
             )}
           >
             <Icon size={15} />
@@ -382,7 +382,7 @@ export function PrizesClient({
             return (
               <div key={bucket.key} className="space-y-2">
                 {/* Tier header */}
-                <div className={cn("rounded-xl px-3 py-2 flex items-center gap-2 border", bucket.sectionBg, bucket.borderColor)}>
+                <div className={cn("rounded-xl px-4 py-2.5 flex items-center gap-2", bucket.sectionBg)}>
                   <span className="text-lg">{bucket.emoji}</span>
                   <span className={cn("font-bold text-sm", bucket.headerText)}>{bucket.label} Tier</span>
                   <span className={cn("ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-full", bucket.tagBg, bucket.tagText)}>
@@ -397,8 +397,8 @@ export function PrizesClient({
                   const canAfford  = balance >= prize.pointCost
                   const isRedeeming = redeeming === prize.id
                   return (
-                    <div key={prize.id} className="bg-white rounded-2xl border border-slate-200 p-4 flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-2xl flex-shrink-0">
+                    <div key={prize.id} className="bg-white rounded-2xl p-4 flex items-center gap-4 shadow-card-md">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100/80 flex items-center justify-center text-2xl flex-shrink-0">
                         {prize.emoji}
                       </div>
                       <div className="flex-1 min-w-0">

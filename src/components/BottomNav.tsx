@@ -47,7 +47,7 @@ export function BottomNav({ role, theme }: { role: string; theme: string }) {
   return (
     // safe-area-pb extends the white background under the home indicator without
     // affecting the visible icon/label row, which is sized by navHeight alone.
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 safe-area-pb">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-t border-slate-200/60 safe-area-pb" style={{ boxShadow: "0 -1px 0 rgba(0,0,0,0.04), 0 -4px 16px rgba(0,0,0,0.04)" }}>
       <div className={cn("flex items-stretch", navHeight)}>
         {visible.map((item) => {
           const Icon = item.icon

@@ -21,6 +21,37 @@ body {
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* ═══════════════════════════════════════════
+   CARD ELEVATION SYSTEM
+   Soft, iOS-style shadows — much gentler than
+   Tailwind's defaults which use full black.
+   ═══════════════════════════════════════════ */
+
+@layer utilities {
+  /* Subtle lift — list items, small chips */
+  .shadow-card {
+    box-shadow: 0 1px 3px 0 rgba(0,0,0,.06), 0 1px 2px -1px rgba(0,0,0,.04);
+  }
+  /* Standard card elevation */
+  .shadow-card-md {
+    box-shadow: 0 2px 8px 0 rgba(0,0,0,.07), 0 1px 3px -1px rgba(0,0,0,.04);
+  }
+  /* Hero / featured card */
+  .shadow-card-lg {
+    box-shadow: 0 4px 20px 0 rgba(0,0,0,.09), 0 2px 6px -2px rgba(0,0,0,.05);
+  }
+}
+
+/* Dark theme adjusts the custom shadows so they remain visible */
+[data-theme="dark"] .shadow-card    { box-shadow: 0 1px 3px  0 rgba(0,0,0,.50); }
+[data-theme="dark"] .shadow-card-md { box-shadow: 0 2px 8px  0 rgba(0,0,0,.55); }
+[data-theme="dark"] .shadow-card-lg { box-shadow: 0 4px 20px 0 rgba(0,0,0,.60); }
+
+/* Classy theme warm-tinted shadows */
+[data-theme="classy"] .shadow-card    { box-shadow: 0 1px 4px  0 rgba(140,90,50,.07); }
+[data-theme="classy"] .shadow-card-md { box-shadow: 0 2px 10px 0 rgba(140,90,50,.09); }
+[data-theme="classy"] .shadow-card-lg { box-shadow: 0 4px 24px 0 rgba(140,90,50,.11); }
+
 /* ───────────────────────────────────────────────
    MOBILE / SAFE AREA
    ─────────────────────────────────────────────── */

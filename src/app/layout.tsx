@@ -27,7 +27,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${geist.variable} h-full`}>
-      <body className="h-full bg-slate-50 font-sans antialiased">
+      <body className="h-full bg-[#f4f4f6] font-sans antialiased text-slate-900">
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -133,7 +133,7 @@ export function GroceryList({
     <div className="space-y-4">
       {/* Add form */}
       {showForm ? (
-        <form onSubmit={addItem} className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
+        <form onSubmit={addItem} className="bg-white rounded-2xl p-4 space-y-3 shadow-card-md">
           <div className="flex items-center justify-between mb-1">
             <p className="font-semibold text-slate-900 text-sm">New Item</p>
             <button type="button" onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600">
@@ -197,7 +197,7 @@ export function GroceryList({
 
       {/* Empty state */}
       {items.length === 0 && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
+        <div className="bg-white rounded-2xl p-8 text-center shadow-card">
           <ShoppingCart size={32} className="mx-auto text-slate-300 mb-3" />
           <p className="text-sm font-medium text-slate-500">Your list is empty</p>
           <p className="text-xs text-slate-400 mt-1">Tap "Add Item" to get started</p>
@@ -207,7 +207,7 @@ export function GroceryList({
       {/* Grouped uncompleted items */}
       {sortedKeys.map((key) => (
         <div key={key}>
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2 px-1">{key}</p>
+          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2 px-1">{key}</p>
           <div className="space-y-2">
             {grouped[key].map((item) => (
               <ItemRow
@@ -226,7 +226,7 @@ export function GroceryList({
       {completed.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-2 px-1">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
               Checked off ({completed.length})
             </p>
             {canManage && (
@@ -238,7 +238,7 @@ export function GroceryList({
               </button>
             )}
           </div>
-          <div className="space-y-2 opacity-60">
+          <div className="space-y-2">
             {completed.map((item) => (
               <ItemRow
                 key={item.id}
@@ -267,7 +267,7 @@ function ItemRow({
   onDelete: (id: string) => void
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 px-4 py-3 flex items-center gap-3">
+    <div className="bg-white rounded-2xl px-4 py-3 flex items-center gap-3 shadow-card">
       {/* Checkbox */}
       <button
         onClick={() => onToggle(item)}
