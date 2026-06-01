@@ -56,6 +56,61 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
   // ── Edit fields (admin/parent only) ──────────────────────────────────────────
   const isEditUpdate = canManageAll && "title" in body
 
+  // ── Reassign who completed (admin/parent only) ───────────────────────────────
+  // Body contains `completedById` only when the chore was already completed.
+  // Handles three cases:
+  //   old→new  : deduct from old, award to new, keep lastCompleted
+  //   old→null : deduct from old, clear lastCompleted
+  //   null→new : award to new, set lastCompleted (shouldn't normally happen via
+  //              the edit modal, but guard it anyway)
+  if (isEditUpdate && "completedById" in body) {
+    const oldCompleter = chore.completedById
+    const newCompleter: string | null = body.completedById ?? null
+
+    if (oldCompleter !== newCompleter && chore.pointValue > 0) {
+      const txns: { userId: string; points: number; reason: string }[] = []
+      if (oldCompleter) {
+        txns.push({ userId: oldCompleter, points: -chore.pointValue, reason: `Reassigned: ${chore.title}` })
+      }
+      if (newCompleter) {
+        txns.push({ userId: newCompleter, points: chore.pointValue, reason: `Chore: ${chore.title}` })
+      }
+      if (txns.length) await prisma.pointTransaction.createMany({ data: txns })
+    }
+
+    // Determine lastCompleted for the update
+    let newLastCompleted: Date | null
+    if (newCompleter === null) {
+      newLastCompleted = null                       // clearing the completion
+    } else if (chore.lastCompleted) {
+      newLastCompleted = chore.lastCompleted        // keep existing timestamp
+    } else {
+      newLastCompleted = new Date()                 // back-fill
+    }
+
+    const updated = await prisma.chore.update({
+      where: { id },
+      data: {
+        ...("title"      in body && { title:      body.title }),
+        ...("frequency"  in body && { frequency:  body.frequency }),
+        ...("pointValue" in body && { pointValue: body.pointValue }),
+        ...("assigneeId" in body && { assigneeId: body.assigneeId || null }),
+        ...("dueBy"      in body && { dueBy:      body.dueBy ? new Date(body.dueBy) : null }),
+        lastCompleted: newLastCompleted,
+        completedById: newCompleter,
+      },
+      include: { assignee: { select: { id: true, name: true, avatarColor: true } } },
+    })
+
+    await logActivity(userId, "updated", "chore", chore.title)
+
+    return NextResponse.json({
+      ...updated,
+      dueBy:         updated.dueBy         ? updated.dueBy.toISOString()         : null,
+      lastCompleted: updated.lastCompleted ? updated.lastCompleted.toISOString() : null,
+    })
+  }
+
   const updated = await prisma.chore.update({
     where: { id },
     data: isEditUpdate

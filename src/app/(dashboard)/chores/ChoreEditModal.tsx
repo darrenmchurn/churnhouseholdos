@@ -11,6 +11,7 @@ type Chore = {
   frequency: string
   pointValue: number
   dueBy: string | null
+  lastCompleted: string | null
   completedById: string | null
   assignee: { id: string; name: string; avatarColor: string } | null
 }
@@ -43,6 +44,7 @@ export function ChoreEditModal({ chore, users, onClose, onSaved }: Props) {
     if (!chore?.dueBy) return "08:00"
     return utcToChicago(chore.dueBy).time
   })
+  const [completedById, setCompletedById] = useState<string | null>(chore?.completedById ?? null)
   const [saving, setSaving]     = useState(false)
   const [error, setError]       = useState("")
 
@@ -56,16 +58,22 @@ export function ChoreEditModal({ chore, users, onClose, onSaved }: Props) {
     setError("")
     const dueBy = dueByDate ? chicagoToUTC(dueByDate, dueByTime) : null
     try {
+      const payload: Record<string, unknown> = {
+        title: title.trim(),
+        frequency,
+        pointValue: parseInt(points) || 1,
+        assigneeId: assigneeId || null,
+        dueBy,
+      }
+      // Only send completedById when the chore is already completed so the API
+      // can transfer / remove the star award accordingly.
+      if (chore.lastCompleted !== null) {
+        payload.completedById = completedById
+      }
       const res = await fetch(`/api/chores/${chore.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: title.trim(),
-          frequency,
-          pointValue: parseInt(points) || 1,
-          assigneeId: assigneeId || null,
-          dueBy,
-        }),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) {
         const d = await res.json()
@@ -162,6 +170,31 @@ export function ChoreEditModal({ chore, users, onClose, onSaved }: Props) {
             </button>
           )}
         </div>
+
+        {/* Completed By — only visible when the chore has been marked done */}
+        {chore?.lastCompleted && (
+          <div>
+            <label className="text-xs font-medium text-slate-600 block mb-1">
+              Completed By
+              <span className="text-slate-400 font-normal ml-1">(reassigns ⭐ stars)</span>
+            </label>
+            <select
+              value={completedById ?? ""}
+              onChange={(e) => setCompletedById(e.target.value || null)}
+              className="w-full h-11 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="">— Clear completion —</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>{u.name}</option>
+              ))}
+            </select>
+            {completedById === null && (
+              <p className="text-xs text-amber-600 mt-1">
+                Clearing completion will reverse the ⭐ award.
+              </p>
+            )}
+          </div>
+        )}
 
         {error && (
           <p className={cn("text-sm font-medium text-red-600")}>{error}</p>
