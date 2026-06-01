@@ -9,8 +9,6 @@ import {
   Sparkles,
   CalendarDays,
   ShoppingCart,
-  History,
-  Settings,
   Trophy,
 } from "lucide-react"
 
@@ -22,15 +20,15 @@ type NavItem = {
   roles?: string[]
 }
 
+// History and Admin are accessed via the dashboard header — removing them from
+// the bottom nav keeps it at 6 items max for any role (~63px each on 375px).
 const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Home",     emoji: "🏠", icon: LayoutDashboard },
   { href: "/tasks",     label: "Tasks",    emoji: "✅", icon: CheckSquare,  roles: ["ADMIN", "PARENT", "CHILD"] },
   { href: "/chores",    label: "Chores",   emoji: "✨", icon: Sparkles },
   { href: "/calendar",  label: "Calendar", emoji: "📅", icon: CalendarDays },
-  { href: "/grocery",   label: "Grocery",  emoji: "🛒", icon: ShoppingCart, roles: ["ADMIN", "PARENT", "CHILD"] },
+  { href: "/grocery",   label: "Food",     emoji: "🍽️", icon: ShoppingCart, roles: ["ADMIN", "PARENT", "CHILD"] },
   { href: "/prizes",    label: "Prizes",   emoji: "🏆", icon: Trophy,       roles: ["ADMIN", "PARENT", "CHILD"] },
-  { href: "/activity",  label: "History",  emoji: "📋", icon: History,      roles: ["ADMIN", "PARENT", "CHILD"] },
-  { href: "/admin",     label: "Admin",    emoji: "⚙️", icon: Settings,     roles: ["ADMIN", "PARENT"] },
 ]
 
 export function BottomNav({ role, theme }: { role: string; theme: string }) {

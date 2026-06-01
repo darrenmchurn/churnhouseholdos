@@ -81,7 +81,7 @@ export function GroceryTabs({
           active={tab === "meals"}
           onClick={() => setTab("meals")}
           icon={<CalendarDays size={14} />}
-          label="Meal Plan"
+          label="Meals"
         />
         <TabButton
           active={tab === "nutrition"}

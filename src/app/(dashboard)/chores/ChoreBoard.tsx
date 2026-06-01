@@ -379,6 +379,8 @@ export function ChoreBoard({
   const [undoing, setUndoing]       = useState<string | null>(null)
   const [deleting, setDeleting]     = useState<string | null>(null)
   const [editingChore, setEditingChore] = useState<Chore | null>(null)
+  // Collapse "All Good" by default when there are many completed chores
+  const [showDone, setShowDone] = useState(() => initial.filter((c) => !isDue(c)).length <= 2)
 
   // Merge newly added chores when the server refreshes the prop.
   // Only appends items whose IDs aren't already in local state so optimistic
@@ -491,23 +493,37 @@ export function ChoreBoard({
 
         {done.length > 0 && (
           <div>
-            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
-              All Good · {done.length}
-            </h2>
-            <SortableSection
-              items={done}
-              overdue={false}
-              canManage={canManage}
-              userId={userId}
-              completing={completing}
-              undoing={undoing}
-              deleting={deleting}
-              onComplete={completeChore}
-              onUndo={undoChore}
-              onDelete={deleteChore}
-              onEdit={setEditingChore}
-              onReorder={handleDoneReorder}
-            />
+            <button
+              onClick={() => setShowDone((v) => !v)}
+              className="flex items-center gap-2 w-full text-left mb-3 group"
+              aria-expanded={showDone}
+            >
+              <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">
+                All Good · {done.length}
+              </h2>
+              <svg
+                className={cn("w-4 h-4 text-slate-400 transition-transform flex-shrink-0", showDone && "rotate-180")}
+                fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {showDone && (
+              <SortableSection
+                items={done}
+                overdue={false}
+                canManage={canManage}
+                userId={userId}
+                completing={completing}
+                undoing={undoing}
+                deleting={deleting}
+                onComplete={completeChore}
+                onUndo={undoChore}
+                onDelete={deleteChore}
+                onEdit={setEditingChore}
+                onReorder={handleDoneReorder}
+              />
+            )}
           </div>
         )}
       </div>

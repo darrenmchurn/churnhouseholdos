@@ -13,9 +13,22 @@ import {
   ShoppingCart,
   LogOut,
   Star,
+  Settings,
+  History,
 } from "lucide-react"
 import { avatarTextColor } from "@/lib/utils"
 import { KidsZoneSection } from "./KidsZoneSection"
+
+function relTime(date: Date): string {
+  const mins  = Math.floor((Date.now() - date.getTime()) / 60_000)
+  const hours = Math.floor(mins / 60)
+  const days  = Math.floor(hours / 24)
+  if (mins  <  1) return "just now"
+  if (mins  < 60) return `${mins}m ago`
+  if (hours < 24) return `${hours}h ago`
+  if (days  ===1) return "yesterday"
+  return `${days}d ago`
+}
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -34,7 +47,7 @@ export default async function DashboardPage() {
 
   // Read name + avatarColor from DB so profile changes are reflected immediately
   // (the session JWT is only updated on re-login, so session.user.name can be stale)
-  const [currentUser, taskCount, choreItems, eventCount, groceryCount, announcements, pointsAgg, kidsZoneTiles] =
+  const [currentUser, taskCount, choreItems, eventCount, groceryCount, announcements, pointsAgg, kidsZoneTiles, recentActivity] =
     await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
@@ -69,6 +82,13 @@ export default async function DashboardPage() {
       }),
       isChild
         ? prisma.kidsZoneTile.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } })
+        : Promise.resolve([]),
+      !isKiosk
+        ? prisma.activityLog.findMany({
+            take: 5,
+            orderBy: { createdAt: "desc" },
+            include: { user: { select: { name: true, avatarColor: true } } },
+          })
         : Promise.resolve([]),
     ])
 
@@ -151,7 +171,7 @@ export default async function DashboardPage() {
             {isKiosk ? "Churn Household OS" : `Hey, ${name}!`}
           </h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {!isKiosk && (
             <a
               href="/prizes"
@@ -162,11 +182,22 @@ export default async function DashboardPage() {
               <span className="font-bold text-amber-700 text-sm leading-none">{myPoints}</span>
             </a>
           )}
+          {canSeeAll && (
+            <a
+              href="/admin"
+              className="w-10 h-10 rounded-2xl flex items-center justify-center bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors active:scale-90"
+              title="Admin settings"
+              aria-label="Admin settings"
+            >
+              <Settings size={17} />
+            </a>
+          )}
           <a
             href="/profile"
-            className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-lg shadow-sm active:scale-90 transition-transform ${avatarTextColor(avatarColor)}${avatarColor === "#ffffff" ? " ring-1 ring-slate-200" : ""}`}
+            className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-base shadow-sm active:scale-90 transition-transform ${avatarTextColor(avatarColor)}${avatarColor === "#ffffff" ? " ring-1 ring-slate-200" : ""}`}
             style={{ backgroundColor: avatarColor }}
-            title="Edit profile & theme"
+            title="Profile & settings"
+            aria-label="Profile & settings"
           >
             {name[0].toUpperCase()}
           </a>
@@ -274,6 +305,40 @@ export default async function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Recent Activity — replaces the dedicated /activity nav item */}
+      {recentActivity.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold text-slate-700 flex items-center gap-2">
+              <History size={16} className="text-slate-400" />
+              Recent Activity
+            </h2>
+            <a href="/activity" className="text-xs text-indigo-600 font-medium">
+              See all →
+            </a>
+          </div>
+          <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
+            {recentActivity.map((log) => (
+              <div key={log.id} className="px-4 py-3 flex items-center gap-3">
+                <div
+                  className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold"
+                  style={{ backgroundColor: log.user.avatarColor }}
+                  aria-hidden="true"
+                >
+                  {log.user.name[0]}
+                </div>
+                <p className="text-sm text-slate-700 flex-1 min-w-0 truncate">
+                  <span className="font-medium">{log.user.name}</span>{" "}
+                  <span className="text-slate-500">{log.action}</span>{" "}
+                  <span className="text-slate-600 italic">{log.entityTitle}</span>
+                </p>
+                <span className="text-xs text-slate-400 flex-shrink-0">{relTime(log.createdAt)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Kiosk: family login button */}
       {isKiosk && (

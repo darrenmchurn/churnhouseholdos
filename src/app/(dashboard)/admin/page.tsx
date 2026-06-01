@@ -62,10 +62,16 @@ export default async function AdminPage() {
         <KidsZoneTileManager initialTiles={kidsZoneTiles} />
       </section>
 
-      {/* How everything works */}
+      {/* How everything works — collapsed by default to reduce page length */}
       <section>
-        <h2 className="text-base font-semibold text-slate-700 mb-3">How It Works</h2>
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-4 text-sm text-slate-700">
+        <details className="group bg-white border border-slate-200 rounded-2xl overflow-hidden">
+          <summary className="px-4 py-3.5 flex items-center justify-between cursor-pointer select-none list-none text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+            How It Works
+            <svg className="w-4 h-4 text-slate-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </summary>
+          <div className="px-4 pb-4 pt-2 space-y-4 text-sm text-slate-700 border-t border-slate-100">
 
           <div>
             <p className="font-semibold text-slate-900 mb-1.5">👥 Roles</p>
@@ -131,7 +137,8 @@ export default async function AdminPage() {
             </ul>
           </div>
 
-        </div>
+          </div>
+        </details>
       </section>
     </div>
   )
