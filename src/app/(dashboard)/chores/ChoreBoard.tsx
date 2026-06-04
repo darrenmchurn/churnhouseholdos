@@ -195,7 +195,7 @@ function SortableChoreCard({
       style={style}
       {...attributes}
       className={cn(
-        "bg-white rounded-2xl px-3 py-2.5 flex items-center gap-3 transition-all shadow-card",
+        "bg-white rounded-2xl px-3 py-2.5 flex items-center gap-3 transition-all shadow-card active:scale-[0.98]",
         isDragging && "shadow-card-lg scale-[1.02] opacity-95"
       )}
     >
@@ -204,19 +204,18 @@ function SortableChoreCard({
         onClick={() => canComplete && !isCompleting && onComplete(chore.id)}
         disabled={!canComplete || isCompleting}
         className={cn(
-          "w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center border-2 transition-all",
-          canComplete
-            ? "hover:opacity-75 active:scale-90"
-            : "opacity-25 cursor-default"
+          "w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center border-2 transition-all duration-150",
+          canComplete && !isCompleting && "hover:opacity-80 active:scale-90",
+          !canComplete && "opacity-25 cursor-default"
         )}
-        style={{ borderColor: color }}
+        style={{
+          borderColor: color,
+          backgroundColor: isCompleting ? color : "transparent",
+        }}
         aria-label={`Mark ${chore.title} done`}
       >
         {isCompleting && (
-          <div
-            className="w-[18px] h-[18px] rounded-full opacity-60 animate-pulse"
-            style={{ backgroundColor: color }}
-          />
+          <CheckCircle2 size={18} className="text-white" strokeWidth={2.5} />
         )}
       </button>
 
@@ -246,11 +245,11 @@ function SortableChoreCard({
               </button>
               <button
                 {...listeners}
-                className="w-6 h-6 flex items-center justify-center text-slate-200 hover:text-slate-400 cursor-grab active:cursor-grabbing flex-shrink-0 touch-none"
+                className="w-6 h-6 flex items-center justify-center text-slate-300 hover:text-slate-500 cursor-grab active:cursor-grabbing flex-shrink-0 touch-none"
                 aria-label="Drag to reorder"
                 tabIndex={-1}
               >
-                <GripVertical size={14} />
+                <GripVertical size={15} />
               </button>
             </>
           )}

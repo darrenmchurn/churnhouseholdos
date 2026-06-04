@@ -118,7 +118,7 @@ export function ChoreEditModal({ chore, users, onClose, onSaved }: Props) {
             </select>
           </div>
           <div>
-            <label className="text-xs font-medium text-slate-600 block mb-1">Points</label>
+            <label className="text-xs font-medium text-slate-600 block mb-1">⭐ Stars</label>
             <input
               type="number"
               min="1"

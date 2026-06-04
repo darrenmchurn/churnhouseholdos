@@ -269,7 +269,7 @@ export function PrizesClient({
           <div className="flex items-baseline gap-2">
             <Star size={20} className="text-amber-500 self-center" fill="currentColor" />
             <span className="text-3xl font-bold text-slate-900 leading-none">{balance}</span>
-            <span className="text-sm text-slate-500">pts</span>
+            <span className="text-sm text-slate-500">stars</span>
           </div>
           <div className="text-right">
             {progress.current ? (
@@ -295,7 +295,7 @@ export function PrizesClient({
                   />
                 </div>
                 <div className="flex justify-end pr-0.5">
-                  <span className="text-[9px] text-slate-400">{m.emoji} {m.pts}</span>
+                  <span className="text-[9px] text-slate-400">{m.emoji} {m.pts}⭐</span>
                 </div>
               </div>
             ))}
@@ -304,7 +304,7 @@ export function PrizesClient({
           {/* Next milestone text */}
           {progress.next ? (
             <p className="text-xs text-slate-500 mt-1">
-              <span className="font-semibold text-slate-700">{progress.needed} more pts</span>
+              <span className="font-semibold text-slate-700">{progress.needed} more ⭐</span>
               {" "}to unlock {progress.next.emoji} {progress.next.label} rewards
             </p>
           ) : (
@@ -351,9 +351,9 @@ export function PrizesClient({
               <p className="text-sm font-semibold text-indigo-900">No prizes yet</p>
               <p className="text-xs text-indigo-700">Load the recommended starter prizes based on your chore tiers?</p>
               <div className="text-xs text-indigo-600 space-y-0.5">
-                <p>🥉 Bronze (25 pts): Choose a TV Episode · Extra Screen Time</p>
-                <p>🥈 Silver (75 pts): Late Night Pass · Pick Dinner Night</p>
-                <p>🥇 Gold (200 pts): Movie Night · Eat Out</p>
+                <p>🥉 Bronze (25 ⭐): Choose a TV Episode · Extra Screen Time</p>
+                <p>🥈 Silver (75 ⭐): Late Night Pass · Pick Dinner Night</p>
+                <p>🥇 Gold (200 ⭐): Movie Night · Eat Out</p>
               </div>
               <button
                 onClick={seedDefaults}
@@ -387,8 +387,8 @@ export function PrizesClient({
                   <span className={cn("font-bold text-sm", bucket.headerText)}>{bucket.label} Tier</span>
                   <span className={cn("ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-full", bucket.tagBg, bucket.tagText)}>
                     {bucketPrizes[0].pointCost === bucketPrizes.at(-1)?.pointCost
-                      ? `${bucketPrizes[0].pointCost} pts`
-                      : `${bucketPrizes[0].pointCost}–${bucketPrizes.at(-1)?.pointCost} pts`}
+                      ? `${bucketPrizes[0].pointCost} ⭐`
+                      : `${bucketPrizes[0].pointCost}–${bucketPrizes.at(-1)?.pointCost} ⭐`}
                   </span>
                 </div>
 
@@ -408,10 +408,10 @@ export function PrizesClient({
                         )}
                         <div className="flex items-center gap-1 mt-1">
                           <Star size={11} className="text-amber-500" fill="currentColor" />
-                          <span className="text-xs font-bold text-amber-600">{prize.pointCost} pts</span>
+                          <span className="text-xs font-bold text-amber-600">{prize.pointCost} ⭐</span>
                           {!canAfford && (
                             <span className="text-xs text-slate-400 ml-1">
-                              · need {prize.pointCost - balance} more
+                              · need {prize.pointCost - balance} more ⭐
                             </span>
                           )}
                         </div>
@@ -519,7 +519,7 @@ export function PrizesClient({
           ))}
           {leaderboard.length === 0 && (
             <p className="text-center text-slate-400 text-sm py-8">
-              No points earned yet. Complete chores to get started!
+              No stars earned yet. Complete chores to get started!
             </p>
           )}
         </div>
@@ -546,7 +546,7 @@ export function PrizesClient({
                 </p>
                 <div className="flex items-center gap-1 mt-0.5">
                   <Star size={10} className="text-amber-500" fill="currentColor" />
-                  <span className="text-xs text-amber-600 font-medium">{r.pointsSpent} pts</span>
+                  <span className="text-xs text-amber-600 font-medium">{r.pointsSpent} ⭐</span>
                   <span className="text-xs text-slate-400">· {timeAgo(r.createdAt)}</span>
                 </div>
               </div>
@@ -590,7 +590,7 @@ export function PrizesClient({
               className="w-full h-11 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <p className="text-[11px] text-slate-400 mt-1">
-              1–50 pts = 🥉 Bronze · 51–150 = 🥈 Silver · 151+ = 🥇 Gold
+              1–50 ⭐ = 🥉 Bronze · 51–150 ⭐ = 🥈 Silver · 151+ ⭐ = 🥇 Gold
             </p>
           </div>
           <div>
@@ -646,7 +646,7 @@ export function PrizesClient({
               className="w-full h-11 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <p className="text-[11px] text-slate-400 mt-1">
-              1–50 pts = 🥉 Bronze · 51–150 = 🥈 Silver · 151+ = 🥇 Gold
+              1–50 ⭐ = 🥉 Bronze · 51–150 ⭐ = 🥈 Silver · 151+ ⭐ = 🥇 Gold
             </p>
           </div>
           <div>

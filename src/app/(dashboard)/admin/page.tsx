@@ -88,7 +88,7 @@ export default async function AdminPage() {
             <ul className="space-y-1 pl-1">
               <li>One-off to-do items with optional due dates, priorities, and assignees.</li>
               <li>Admins/Parents can see all tasks; Children only see tasks assigned to them.</li>
-              <li>Completing a task does not award points — use Chores for point-earning work.</li>
+              <li>Completing a task does not award stars — use Chores for star-earning work.</li>
             </ul>
           </div>
 
@@ -96,7 +96,7 @@ export default async function AdminPage() {
             <p className="font-semibold text-slate-900 mb-1.5">🧹 Chores</p>
             <ul className="space-y-1 pl-1">
               <li>Can be <span className="font-medium">One-time</span> (single task, clears when done) or recurring: Daily, Weekly, Every 2 weeks, Monthly.</li>
-              <li>Each chore has a <span className="font-medium">point value</span> — points are awarded to whoever marks it done.</li>
+              <li>Each chore has a <span className="font-medium">star value</span> — ⭐ stars are awarded to whoever marks it done.</li>
               <li>The home screen "Chores" count shows only chores that are currently due.</li>
               <li>Recurring chores reset automatically after their interval and show as due again.</li>
             </ul>
@@ -106,8 +106,8 @@ export default async function AdminPage() {
             <p className="font-semibold text-slate-900 mb-1.5">🏆 Points &amp; Prizes</p>
             <ul className="space-y-1 pl-1">
               <li>Points are earned by completing chores.</li>
-              <li>The Prizes page shows a catalogue of rewards; each prize has a point cost.</li>
-              <li>Children can redeem prizes from their accumulated points balance.</li>
+              <li>The Prizes page shows a catalogue of rewards; each prize has a star cost.</li>
+              <li>Children can redeem prizes from their accumulated star balance.</li>
               <li>Admins/Parents create prizes and can see the full leaderboard.</li>
             </ul>
           </div>
