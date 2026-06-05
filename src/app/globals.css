@@ -28,17 +28,17 @@ body {
    ═══════════════════════════════════════════ */
 
 @layer utilities {
-  /* Subtle lift — list items, small chips */
+  /* Subtle lift — indigo-tinted so cards feel branded, not generic */
   .shadow-card {
-    box-shadow: 0 1px 3px 0 rgba(0,0,0,.06), 0 1px 2px -1px rgba(0,0,0,.04);
+    box-shadow: 0 1px 3px 0 rgba(99,102,241,.06), 0 1px 2px -1px rgba(99,102,241,.04);
   }
   /* Standard card elevation */
   .shadow-card-md {
-    box-shadow: 0 2px 8px 0 rgba(0,0,0,.07), 0 1px 3px -1px rgba(0,0,0,.04);
+    box-shadow: 0 2px 8px 0 rgba(99,102,241,.07), 0 1px 3px -1px rgba(99,102,241,.04);
   }
   /* Hero / featured card */
   .shadow-card-lg {
-    box-shadow: 0 4px 20px 0 rgba(0,0,0,.09), 0 2px 6px -2px rgba(0,0,0,.05);
+    box-shadow: 0 4px 20px 0 rgba(99,102,241,.09), 0 2px 6px -2px rgba(99,102,241,.05);
   }
 }
 

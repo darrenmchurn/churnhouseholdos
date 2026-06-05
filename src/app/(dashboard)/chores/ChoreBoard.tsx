@@ -189,13 +189,20 @@ function SortableChoreCard({
   const badge  = getDueBadge(chore.dueBy)
   const isCompleting = completing === chore.id
 
+  // Surface urgency through the card background — not just the badge
+  const urgencyBg =
+    badge?.cls.includes("red")   ? "bg-red-50/60 border-l-[3px] border-red-400" :
+    badge?.cls.includes("amber") ? "bg-amber-50/50 border-l-[3px] border-amber-400" :
+    "bg-white"
+
   return (
     <div
       ref={setNodeRef}
       style={style}
       {...attributes}
       className={cn(
-        "bg-white rounded-2xl px-3 py-2.5 flex items-center gap-3 transition-all shadow-card active:scale-[0.98]",
+        "rounded-2xl px-3 py-2.5 flex items-center gap-3 transition-all shadow-card active:scale-[0.98]",
+        urgencyBg,
         isDragging && "shadow-card-lg scale-[1.02] opacity-95"
       )}
     >
@@ -204,13 +211,14 @@ function SortableChoreCard({
         onClick={() => canComplete && !isCompleting && onComplete(chore.id)}
         disabled={!canComplete || isCompleting}
         className={cn(
-          "w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center border-2 transition-all duration-150",
-          canComplete && !isCompleting && "hover:opacity-80 active:scale-90",
+          "w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center border-2 transition-all duration-200",
+          canComplete && !isCompleting && "hover:scale-[1.15] hover:shadow-card-md active:scale-90",
           !canComplete && "opacity-25 cursor-default"
         )}
         style={{
           borderColor: color,
           backgroundColor: isCompleting ? color : "transparent",
+          boxShadow: isCompleting ? `0 0 14px 3px ${color}40` : undefined,
         }}
         aria-label={`Mark ${chore.title} done`}
       >
@@ -472,8 +480,10 @@ export function ChoreBoard({
             onReorder={(newDue) => { setChores([...newDue, ...done]); saveOrder(newDue, done) }}
           />
         ) : (
-          <div className="bg-emerald-50 rounded-2xl px-4 py-4 text-center">
-            <p className="text-sm font-semibold text-emerald-700">🎉 All chores done!</p>
+          <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/60 rounded-2xl px-4 py-5 text-center border border-emerald-200/60 shadow-card">
+            <p className="text-xl mb-1">🎉</p>
+            <p className="text-sm font-bold text-emerald-700">All chores done!</p>
+            <p className="text-xs text-emerald-600 mt-0.5 opacity-80">Nothing left to do right now.</p>
           </div>
         )}
 

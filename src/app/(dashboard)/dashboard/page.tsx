@@ -163,19 +163,19 @@ export default async function DashboardPage() {
 
   return (
     <div className="px-4 pt-6 pb-4 max-w-2xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Header — gradient personality zone */}
+      <div className="bg-gradient-to-br from-white to-indigo-50/50 rounded-3xl px-4 py-4 shadow-card-md flex items-center justify-between">
         <div>
-          <p className="text-[11px] font-semibold tracking-widest uppercase text-slate-400">{formatDate(new Date())}</p>
+          <p className="text-[10px] font-semibold tracking-widest uppercase text-indigo-500">{formatDate(new Date())}</p>
           <h1 className="text-[1.6rem] font-bold text-slate-900 mt-1 leading-tight">
-            {isKiosk ? "Churn Household OS" : `Hey, ${name}!`}
+            {isKiosk ? "Churn Household OS" : `Hey, ${name}! 👋`}
           </h1>
         </div>
         <div className="flex items-center gap-1.5">
           {!isKiosk && (
             <a
               href="/prizes"
-              className="flex items-center gap-1.5 bg-amber-50 rounded-2xl px-3 py-2 active:scale-95 transition-transform shadow-card"
+              className="flex items-center gap-1.5 bg-gradient-to-br from-amber-50 to-amber-100/70 rounded-2xl px-3 py-2 active:scale-95 transition-all shadow-card hover:shadow-card-md"
               title="View prizes"
             >
               <Star size={14} className="text-amber-500" fill="currentColor" />
@@ -185,7 +185,7 @@ export default async function DashboardPage() {
           {canSeeAll && (
             <a
               href="/admin"
-              className="w-10 h-10 rounded-2xl flex items-center justify-center bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors active:scale-90"
+              className="w-10 h-10 rounded-2xl flex items-center justify-center bg-slate-100 text-slate-500 hover:bg-slate-200 hover:shadow-card transition-all active:scale-90"
               title="Admin settings"
               aria-label="Admin settings"
             >
@@ -194,7 +194,7 @@ export default async function DashboardPage() {
           )}
           <a
             href="/profile"
-            className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-base shadow-sm active:scale-90 transition-transform ${avatarTextColor(avatarColor)}${avatarColor === "#ffffff" ? " ring-1 ring-slate-200" : ""}`}
+            className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-base shadow-card hover:shadow-card-md active:scale-90 transition-all ${avatarTextColor(avatarColor)}${avatarColor === "#ffffff" ? " ring-1 ring-slate-200" : ""}`}
             style={{ backgroundColor: avatarColor }}
             title="Profile & settings"
             aria-label="Profile & settings"
@@ -254,8 +254,8 @@ export default async function DashboardPage() {
                 <Icon size={21} />
               </div>
               <div>
-                <p className="text-2xl font-bold text-slate-900 leading-none">{stat.value}</p>
-                <p className="text-xs text-slate-500 mt-0.5">{stat.label}</p>
+                <p className="text-3xl font-extrabold text-slate-900 leading-none">{stat.value}</p>
+                <p className="text-xs text-slate-500 mt-1">{stat.label}</p>
               </div>
             </a>
           )

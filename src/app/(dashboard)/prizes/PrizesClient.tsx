@@ -263,7 +263,7 @@ export function PrizesClient({
       </div>
 
       {/* ── Tier Progress Card ── */}
-      <div className="bg-gradient-to-br from-white via-white to-indigo-50/40 rounded-2xl p-5 space-y-3 shadow-card-lg">
+      <div className="bg-gradient-to-br from-white via-indigo-50/20 to-indigo-100/40 rounded-2xl p-5 space-y-3 shadow-card-lg border border-indigo-100/50">
         {/* Balance row */}
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
@@ -273,8 +273,10 @@ export function PrizesClient({
           </div>
           <div className="text-right">
             {progress.current ? (
-              <div className="flex items-center gap-1.5">
-                <span className="text-xl">{progress.current.emoji}</span>
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100 flex items-center justify-center shadow-card flex-shrink-0">
+                  <span className="text-lg leading-none">{progress.current.emoji}</span>
+                </div>
                 <span className={cn("text-sm font-bold", progress.current.textColor)}>{progress.current.label}</span>
               </div>
             ) : (
@@ -397,7 +399,12 @@ export function PrizesClient({
                   const canAfford  = balance >= prize.pointCost
                   const isRedeeming = redeeming === prize.id
                   return (
-                    <div key={prize.id} className="bg-white rounded-2xl p-4 flex items-center gap-4 shadow-card-md">
+                    <div key={prize.id} className={cn(
+                      "bg-white rounded-2xl p-4 flex items-center gap-4 shadow-card-md",
+                      bucket.key === "bronze" ? "border-l-[3px] border-amber-400" :
+                      bucket.key === "silver" ? "border-l-[3px] border-slate-400" :
+                      "border-l-[3px] border-yellow-400"
+                    )}>
                       <div className="w-12 h-12 rounded-2xl bg-slate-100/80 flex items-center justify-center text-2xl flex-shrink-0">
                         {prize.emoji}
                       </div>
@@ -472,17 +479,26 @@ export function PrizesClient({
             <div
               key={u.id}
               className={cn(
-                "bg-white rounded-2xl border border-slate-200 p-4 flex items-center gap-3",
-                u.id === myUserId && "border-indigo-300 bg-indigo-50/40"
+                "bg-white rounded-2xl p-4 flex items-center gap-3 shadow-card",
+                u.id === myUserId
+                  ? "border border-indigo-300 bg-gradient-to-r from-indigo-50/60 to-transparent shadow-card-md"
+                  : ""
               )}
             >
               <span className={cn(
-                "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0",
-                i === 0 ? "bg-amber-400 text-white" :
-                i === 1 ? "bg-slate-300 text-white" :
-                i === 2 ? "bg-orange-300 text-white" : "bg-slate-100 text-slate-500"
-              )}>
-                {i + 1}
+                "flex items-center justify-center font-bold flex-shrink-0 transition-all",
+                i === 0
+                  ? "w-8 h-8 rounded-xl text-base bg-gradient-to-br from-amber-400 to-amber-500 text-white scale-110"
+                  : i === 1
+                  ? "w-7 h-7 rounded-xl text-sm bg-gradient-to-br from-slate-400 to-slate-500 text-white"
+                  : i === 2
+                  ? "w-7 h-7 rounded-xl text-sm bg-gradient-to-br from-orange-400 to-orange-500 text-white"
+                  : "w-6 h-6 rounded-lg text-xs bg-slate-100 text-slate-500"
+              )}
+              style={i === 0 ? { boxShadow: "0 2px 8px rgba(245,158,11,.40)" } :
+                     i === 1 ? { boxShadow: "0 2px 6px rgba(100,116,139,.30)" } :
+                     i === 2 ? { boxShadow: "0 2px 6px rgba(249,115,22,.30)" } : undefined}>
+                {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}
               </span>
               <div
                 className={cn("w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0", avatarTextColor(u.avatarColor))}
@@ -532,7 +548,7 @@ export function PrizesClient({
             <p className="text-center text-slate-400 text-sm py-8">No redemptions yet. Be the first!</p>
           )}
           {feed.map((r) => (
-            <div key={r.id} className="bg-white rounded-2xl border border-slate-200 p-4 flex items-center gap-3">
+            <div key={r.id} className="bg-white rounded-2xl p-4 flex items-center gap-3 shadow-card">
               <div
                 className={cn("w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0", avatarTextColor(r.avatarColor))}
                 style={{ backgroundColor: r.avatarColor }}
