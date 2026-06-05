@@ -469,22 +469,20 @@ export function PrizesClient({
 
       {/* ══════════════════════════════════════════════════════ LEADERBOARD ══ */}
       {tab === "leaderboard" && (
-        <div className="space-y-3">
-          <div className="grid grid-cols-3 gap-1 text-center text-[10px] font-semibold text-slate-400 uppercase tracking-wide px-12">
-            <span>{MONTH_NAME}</span>
-            <span>Balance</span>
-            <span>Spent</span>
-          </div>
-          {leaderboard.map((u, i) => (
+        <div className="space-y-2">
+          {leaderboard.map((u, i) => {
+            const tier = [...TIER_MILESTONES].reverse().find((m) => u.balance >= m.pts)
+            return (
             <div
               key={u.id}
               className={cn(
-                "bg-white rounded-2xl p-4 flex items-center gap-3 shadow-card",
+                "bg-white rounded-2xl px-4 py-3 flex items-center gap-3 shadow-card",
                 u.id === myUserId
                   ? "border border-indigo-300 bg-gradient-to-r from-indigo-50/60 to-transparent shadow-card-md"
                   : ""
               )}
             >
+              {/* Rank badge */}
               <span className={cn(
                 "flex items-center justify-center font-bold flex-shrink-0 transition-all",
                 i === 0
@@ -500,39 +498,60 @@ export function PrizesClient({
                      i === 2 ? { boxShadow: "0 2px 6px rgba(249,115,22,.30)" } : undefined}>
                 {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}
               </span>
+
+              {/* Avatar */}
               <div
                 className={cn("w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0", avatarTextColor(u.avatarColor))}
                 style={{ backgroundColor: u.avatarColor }}
               >
                 {u.name[0].toUpperCase()}
               </div>
+
+              {/* Name + secondary stats */}
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-slate-900 text-sm truncate">
-                  {u.name} {u.id === myUserId && <span className="text-slate-400 font-normal text-xs">(you)</span>}
+                  {u.name}
+                  {u.id === myUserId && (
+                    <span className="text-slate-400 font-normal text-xs ml-1">(you)</span>
+                  )}
                 </p>
-                {/* Tier badge */}
-                {(() => {
-                  const tier = [...TIER_MILESTONES].reverse().find((m) => u.balance >= m.pts)
-                  return tier ? (
+                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                  {tier ? (
                     <span className={cn("text-[10px] font-semibold", tier.textColor)}>
                       {tier.emoji} {tier.label}
                     </span>
-                  ) : <span className="text-[10px] text-slate-400">No tier yet</span>
-                })()}
+                  ) : (
+                    <span className="text-[10px] text-slate-400">No tier</span>
+                  )}
+                  {u.earnedMonth > 0 && (
+                    <>
+                      <span className="text-slate-300 text-[10px]">·</span>
+                      <span className="text-[10px] text-emerald-600 font-medium">
+                        +{u.earnedMonth} ⭐ {MONTH_NAME}
+                      </span>
+                    </>
+                  )}
+                  {u.totalSpent > 0 && (
+                    <>
+                      <span className="text-slate-300 text-[10px]">·</span>
+                      <span className="text-[10px] text-slate-400">
+                        {u.totalSpent} ⭐ spent
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
-              <div className="grid grid-cols-3 gap-3 text-center flex-shrink-0">
-                <div>
-                  <p className="font-bold text-green-600 text-sm">{u.earnedMonth}</p>
-                </div>
-                <div>
-                  <p className="font-bold text-indigo-600 text-sm">{u.balance}</p>
-                </div>
-                <div>
-                  <p className="font-bold text-slate-400 text-sm">{u.totalSpent}</p>
-                </div>
+
+              {/* Star balance — the primary ranking metric, displayed prominently */}
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <Star size={13} className="text-amber-500" fill="currentColor" />
+                <span className="text-base font-extrabold text-slate-900 leading-none">
+                  {u.balance}
+                </span>
               </div>
             </div>
-          ))}
+            )
+          })}
           {leaderboard.length === 0 && (
             <p className="text-center text-slate-400 text-sm py-8">
               No stars earned yet. Complete chores to get started!
