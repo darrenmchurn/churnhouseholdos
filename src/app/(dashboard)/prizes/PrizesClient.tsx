@@ -347,22 +347,30 @@ export function PrizesClient({
             </div>
           )}
 
-          {/* First-run: seed defaults */}
-          {isAdmin && prizes.length === 0 && (
-            <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-5 text-center space-y-3">
-              <p className="text-sm font-semibold text-indigo-900">No prizes yet</p>
-              <p className="text-xs text-indigo-700">Load the recommended starter prizes based on your chore tiers?</p>
-              <div className="text-xs text-indigo-600 space-y-0.5">
-                <p>🥉 Bronze (25 ⭐): Choose a TV Episode · Extra Screen Time</p>
-                <p>🥈 Silver (75 ⭐): Late Night Pass · Pick Dinner Night</p>
-                <p>🥇 Gold (200 ⭐): Movie Night · Eat Out</p>
+          {/* Seed / add missing defaults — always visible to admins */}
+          {isAdmin && (
+            <div className="bg-indigo-50/70 border border-indigo-100 rounded-2xl p-4 space-y-2.5">
+              <div>
+                <p className="text-sm font-semibold text-indigo-900">
+                  {prizes.length === 0 ? "No prizes yet" : "Add missing defaults"}
+                </p>
+                <p className="text-xs text-indigo-600 mt-0.5">
+                  {prizes.length === 0
+                    ? "Load the full starter set across all three tiers."
+                    : "Adds any default prizes not already in your list. Existing prizes are untouched."}
+                </p>
+                <div className="text-xs text-indigo-500 mt-1.5 space-y-0.5">
+                  <p>🥉 Bronze (25 ⭐) · 8 prizes</p>
+                  <p>🥈 Silver (75 ⭐) · 7 prizes</p>
+                  <p>🥇 Gold (200 ⭐) · 7 prizes</p>
+                </div>
               </div>
               <button
                 onClick={seedDefaults}
                 disabled={seeding}
-                className="h-10 px-6 rounded-xl bg-indigo-600 text-white text-sm font-semibold disabled:opacity-50"
+                className="h-9 px-5 rounded-xl bg-indigo-600 text-white text-sm font-semibold disabled:opacity-50"
               >
-                {seeding ? "Loading…" : "Load Default Prizes"}
+                {seeding ? "Adding…" : prizes.length === 0 ? "Load Default Prizes" : "Add Missing Defaults"}
               </button>
             </div>
           )}
