@@ -1058,10 +1058,11 @@ function AddFoodSheet({
         )}
 
         {/* ── NEW view: scan + manual tabs ─────────────────────────────────────── */}
-        {view === "new" && (<>
+        {view === "new" && (
+        <div className="flex-1 flex flex-col min-h-0">
 
         {/* Tab switcher */}
-        <div className="flex gap-1 bg-slate-100 rounded-xl p-1 mb-4" role="tablist">
+        <div className="flex gap-1 bg-slate-100 rounded-xl p-1 mb-4 flex-shrink-0" role="tablist">
           {(["scan", "manual"] as const).map((t) => (
             <button
               key={t}
@@ -1267,7 +1268,8 @@ function AddFoodSheet({
             </button>
           </form>
         )}
-        </>)}
+        </div>
+        )}
       </div>
     </div>
   )
