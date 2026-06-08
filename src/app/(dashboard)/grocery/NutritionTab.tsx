@@ -61,8 +61,7 @@ const MEAL_ICON: Record<MealSection, string> = {
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
 function todayStr(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" })
 }
 
 function addDays(dateStr: string, n: number): string {
@@ -76,7 +75,7 @@ function formatDateLabel(dateStr: string): string {
   const date = new Date(y, m - 1, d)
   if (dateStr === todayStr()) return "Today"
   if (dateStr === addDays(todayStr(), -1)) return "Yesterday"
-  return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
+  return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago" })
 }
 
 // ─── Accessible progress bar ─────────────────────────────────────────────────
@@ -887,7 +886,7 @@ function AddFoodSheet({
     >
       <div className="absolute inset-0 bg-black/40" onClick={onClose} aria-hidden="true" />
       <div
-        className="relative bg-white rounded-t-3xl px-4 pt-4 max-h-[90vh] flex flex-col"
+        className="relative bg-white rounded-t-3xl px-4 pt-4 max-h-[90vh] overflow-hidden flex flex-col"
         style={{ paddingBottom: "max(2rem, env(safe-area-inset-bottom))" }}
       >
         <div className="w-10 h-1 rounded-full bg-slate-200 mx-auto mb-4" aria-hidden="true" />
@@ -1166,7 +1165,7 @@ function AddFoodSheet({
             role="tabpanel"
             aria-label="Manual food entry"
             onSubmit={handleSubmit}
-            className="flex-1 overflow-y-auto overscroll-contain space-y-3 min-h-0"
+            className="flex-1 overflow-y-auto overscroll-contain space-y-3 min-h-0 pb-4"
           >
             {lookupMsg && (
               <div className="bg-slate-50 rounded-xl px-3 py-2.5 text-sm text-slate-700" role="status" aria-live="polite">
