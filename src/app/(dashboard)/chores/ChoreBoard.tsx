@@ -26,6 +26,7 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { ChoreEditModal } from "./ChoreEditModal"
+import { ConfirmSheet } from "@/components/ConfirmSheet"
 
 type User = { id: string; name: string; avatarColor: string }
 type Chore = {
@@ -370,6 +371,8 @@ export function ChoreBoard({
   const [undoing,    setUndoing]    = useState<string | null>(null)
   const [deleting,   setDeleting]   = useState<string | null>(null)
   const [editingChore, setEditingChore] = useState<Chore | null>(null)
+  const [confirmingDelete, setConfirmingDelete] = useState<Chore | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
   const [showDone, setShowDone]     = useState(() => initial.filter((c) => !isDue(c)).length <= 2)
   // Only the most recent month starts expanded; others collapsed
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(() => {
@@ -402,37 +405,64 @@ export function ChoreBoard({
       return bTime - aTime
     })
 
+  function flashError(msg: string) {
+    setActionError(msg)
+    setTimeout(() => setActionError(null), 4000)
+  }
+
   async function completeChore(id: string) {
+    const snapshot = chores.find((c) => c.id === id)
     setCompleting(id)
     setShowDone(true)
     setExpandedMonths((prev) => new Set([...prev, monthKey(new Date().toISOString())]))
     setChores((prev) => prev.map((c) =>
       c.id === id ? { ...c, lastCompleted: new Date().toISOString(), completedById: userId } : c
     ))
-    await fetch(`/api/chores/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ complete: true }),
-    })
+    try {
+      const res = await fetch(`/api/chores/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ complete: true }),
+      })
+      if (!res.ok) {
+        // Revert the optimistic completion — e.g. someone else finished it first (409)
+        if (snapshot) setChores((prev) => prev.map((c) => (c.id === id ? snapshot : c)))
+        flashError(res.status === 409 ? "Someone already completed that one!" : "Couldn't complete chore — try again")
+      }
+    } catch {
+      if (snapshot) setChores((prev) => prev.map((c) => (c.id === id ? snapshot : c)))
+      flashError("Couldn't complete chore — check your connection")
+    }
     setCompleting(null)
     router.refresh()
   }
 
   async function undoChore(id: string) {
+    const snapshot = chores.find((c) => c.id === id)
     setUndoing(id)
     setChores((prev) => prev.map((c) =>
       c.id === id ? { ...c, lastCompleted: null, completedById: null } : c
     ))
-    await fetch(`/api/chores/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ undo: true }),
-    })
+    try {
+      const res = await fetch(`/api/chores/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ undo: true }),
+      })
+      if (!res.ok) {
+        if (snapshot) setChores((prev) => prev.map((c) => (c.id === id ? snapshot : c)))
+        flashError("Couldn't undo — try again")
+      }
+    } catch {
+      if (snapshot) setChores((prev) => prev.map((c) => (c.id === id ? snapshot : c)))
+      flashError("Couldn't undo — check your connection")
+    }
     setUndoing(null)
     router.refresh()
   }
 
   async function deleteChore(id: string) {
+    setConfirmingDelete(null)
     setDeleting(id)
     setChores((prev) => prev.filter((c) => c.id !== id))
     await fetch(`/api/chores/${id}`, { method: "DELETE" })
@@ -466,6 +496,13 @@ export function ChoreBoard({
     <>
       <div className="space-y-4">
 
+        {/* ── Transient action error ─────────────────────────────────────── */}
+        {actionError && (
+          <div className="bg-amber-50 border-l-4 border-amber-400 rounded-2xl px-4 py-3 shadow-card" role="alert">
+            <p className="text-sm font-medium text-amber-800">{actionError}</p>
+          </div>
+        )}
+
         {/* ── Active chores ──────────────────────────────────────────────── */}
         {due.length > 0 ? (
           <SortableSection
@@ -475,7 +512,10 @@ export function ChoreBoard({
             completing={completing}
             deleting={deleting}
             onComplete={completeChore}
-            onDelete={deleteChore}
+            onDelete={(id) => {
+              const chore = chores.find((c) => c.id === id)
+              if (chore) setConfirmingDelete(chore)
+            }}
             onEdit={setEditingChore}
             onReorder={(newDue) => { setChores([...newDue, ...done]); saveOrder(newDue, done) }}
           />
@@ -567,6 +607,15 @@ export function ChoreBoard({
         users={users}
         onClose={() => setEditingChore(null)}
         onSaved={handleSaved}
+      />
+
+      <ConfirmSheet
+        open={!!confirmingDelete}
+        title={confirmingDelete ? `Delete "${confirmingDelete.title}"?` : ""}
+        message="Its completion history goes with it. This can't be undone."
+        confirmLabel="Delete"
+        onConfirm={() => confirmingDelete && deleteChore(confirmingDelete.id)}
+        onCancel={() => setConfirmingDelete(null)}
       />
     </>
   )

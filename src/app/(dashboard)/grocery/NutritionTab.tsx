@@ -269,7 +269,7 @@ function WeightCard({
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 px-4 py-4 space-y-3">
+    <div className="bg-white rounded-2xl shadow-card-md px-4 py-4 space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -478,7 +478,7 @@ export function NutritionTab({
   return (
     <div className="space-y-4">
       {/* Date nav */}
-      <div className="bg-white rounded-2xl border border-slate-200 px-4 py-3 flex items-center justify-between">
+      <div className="bg-white rounded-2xl shadow-card-md px-4 py-3 flex items-center justify-between">
         <button
           onClick={() => setDate((d) => addDays(d, -1))}
           className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors"
@@ -501,7 +501,7 @@ export function NutritionTab({
       </div>
 
       {/* Daily summary card */}
-      <div className="bg-white rounded-2xl border border-slate-200 px-4 py-4 space-y-3">
+      <div className="bg-white rounded-2xl shadow-card-md px-4 py-4 space-y-3">
         <h2 className="text-sm font-semibold text-slate-700 sr-only">Daily nutrition summary</h2>
 
         {/* Calorie row */}
@@ -560,7 +560,7 @@ export function NutritionTab({
 
       {/* Meal sections */}
       {loading ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center" aria-live="polite">
+        <div className="bg-white rounded-2xl shadow-card-md p-8 text-center" aria-live="polite">
           <p className="text-sm text-slate-400">Loading…</p>
         </div>
       ) : (
@@ -569,7 +569,7 @@ export function NutritionTab({
             const items = log.filter((e) => e.mealType === section)
             const sectionCals = Math.round(items.reduce((s, e) => s + e.calories, 0))
             return (
-              <section key={section} aria-label={MEAL_LABEL[section]} className="bg-white rounded-2xl border border-slate-200 px-4 py-3">
+              <section key={section} aria-label={MEAL_LABEL[section]} className="bg-white rounded-2xl shadow-card-md px-4 py-3">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <span className="text-base" aria-hidden="true">{MEAL_ICON[section]}</span>

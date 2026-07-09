@@ -60,6 +60,7 @@ type SavedFood = {
 type Tab = "grocery" | "meals" | "nutrition"
 
 export function GroceryTabs({
+  initialTab = "grocery",
   initialItems,
   initialMeals,
   canManage,
@@ -69,6 +70,7 @@ export function GroceryTabs({
   initialWeights,
   savedFoods,
 }: {
+  initialTab?: Tab
   initialItems: GroceryItem[]
   initialMeals: Meal[]
   canManage: boolean
@@ -78,7 +80,14 @@ export function GroceryTabs({
   initialWeights: WeightEntry[]
   savedFoods: SavedFood[]
 }) {
-  const [tab, setTab] = useState<Tab>("grocery")
+  const [tab, setTab] = useState<Tab>(initialTab)
+
+  // Mirror the active tab into the URL (shallow — no server refetch) so
+  // re-entering Food lands on the same tab; daily nutrition loggers skip a tap
+  function switchTab(t: Tab) {
+    setTab(t)
+    window.history.replaceState(null, "", t === "grocery" ? "/grocery" : `/grocery?tab=${t}`)
+  }
 
   return (
     <div className="space-y-4">
@@ -86,19 +95,19 @@ export function GroceryTabs({
       <div className="flex gap-1 bg-slate-100 rounded-2xl p-1">
         <TabButton
           active={tab === "grocery"}
-          onClick={() => setTab("grocery")}
+          onClick={() => switchTab("grocery")}
           icon={<ShoppingCart size={14} />}
           label="Grocery"
         />
         <TabButton
           active={tab === "meals"}
-          onClick={() => setTab("meals")}
+          onClick={() => switchTab("meals")}
           icon={<CalendarDays size={14} />}
           label="Meals"
         />
         <TabButton
           active={tab === "nutrition"}
-          onClick={() => setTab("nutrition")}
+          onClick={() => switchTab("nutrition")}
           icon={<Flame size={14} />}
           label="Nutrition"
         />

@@ -2,8 +2,9 @@
 
 import { useState } from "react"
 import { Trophy, ShoppingBag, Clock, Plus, Trash2, Star, Pencil } from "lucide-react"
-import { cn, avatarTextColor } from "@/lib/utils"
+import { cn, avatarTextColor, relTime } from "@/lib/utils"
 import { Modal } from "@/components/Modal"
+import { ConfirmSheet } from "@/components/ConfirmSheet"
 
 type Prize = {
   id: string
@@ -108,16 +109,6 @@ function getTierProgress(balance: number) {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime()
-  const m = Math.floor(diff / 60000)
-  if (m < 1) return "just now"
-  if (m < 60) return `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h ago`
-  return `${Math.floor(h / 24)}d ago`
-}
-
 const MONTH_NAME = new Date().toLocaleDateString("en-US", { month: "long" })
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -137,6 +128,8 @@ export function PrizesClient({
   const [redeeming, setRedeeming]     = useState<string | null>(null)
   const [redeemError, setRedeemError] = useState<Record<string, string>>({})
   const [seeding, setSeeding]         = useState(false)
+  const [confirmingRedeem, setConfirmingRedeem] = useState<Prize | null>(null)
+  const [confirmingDelete, setConfirmingDelete] = useState<Prize | null>(null)
 
   // Add prize
   const [showAddPrize, setShowAddPrize] = useState(false)
@@ -162,6 +155,7 @@ export function PrizesClient({
     setRedeeming(prize.id)
     setRedeemError((e) => ({ ...e, [prize.id]: "" }))
     try {
+      setConfirmingRedeem(null)
       const res  = await fetch(`/api/prizes/${prize.id}/redeem`, { method: "POST" })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Failed")
@@ -183,8 +177,9 @@ export function PrizesClient({
   }
 
   async function deletePrize(id: string) {
-    await fetch(`/api/prizes/${id}`, { method: "DELETE" })
+    setConfirmingDelete(null)
     setPrizes((p) => p.filter((x) => x.id !== id))
+    await fetch(`/api/prizes/${id}`, { method: "DELETE" })
   }
 
   async function addPrize(e: React.FormEvent) {
@@ -436,7 +431,7 @@ export function PrizesClient({
                       </div>
                       <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                         <button
-                          onClick={() => redeemPrize(prize)}
+                          onClick={() => setConfirmingRedeem(prize)}
                           disabled={!canAfford || !!isRedeeming}
                           className={cn(
                             "h-9 px-4 rounded-xl text-sm font-semibold transition-all",
@@ -457,9 +452,9 @@ export function PrizesClient({
                               <Pencil size={13} />
                             </button>
                             <button
-                              onClick={() => deletePrize(prize.id)}
-                              className="text-slate-300 hover:text-red-400 transition-colors"
-                              aria-label="Delete prize"
+                              onClick={() => setConfirmingDelete(prize)}
+                              className="w-8 h-8 -m-2 flex items-center justify-center text-slate-300 hover:text-red-400 transition-colors"
+                              aria-label={`Delete ${prize.title}`}
                             >
                               <Trash2 size={13} />
                             </button>
@@ -590,13 +585,35 @@ export function PrizesClient({
                 <div className="flex items-center gap-1 mt-0.5">
                   <Star size={10} className="text-amber-500" fill="currentColor" />
                   <span className="text-xs text-amber-600 font-medium">{r.pointsSpent} ⭐</span>
-                  <span className="text-xs text-slate-400">· {timeAgo(r.createdAt)}</span>
+                  <span className="text-xs text-slate-400">· {relTime(r.createdAt)}</span>
                 </div>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      {/* ── Redeem confirmation ── */}
+      <ConfirmSheet
+        open={!!confirmingRedeem}
+        title={confirmingRedeem ? `Redeem ${confirmingRedeem.emoji} ${confirmingRedeem.title}?` : ""}
+        message={confirmingRedeem ? `This will spend ${confirmingRedeem.pointCost} ⭐ of your ${balance} ⭐.` : undefined}
+        confirmLabel="Redeem"
+        tone="primary"
+        busy={!!redeeming}
+        onConfirm={() => confirmingRedeem && redeemPrize(confirmingRedeem)}
+        onCancel={() => setConfirmingRedeem(null)}
+      />
+
+      {/* ── Delete prize confirmation ── */}
+      <ConfirmSheet
+        open={!!confirmingDelete}
+        title={confirmingDelete ? `Delete "${confirmingDelete.title}"?` : ""}
+        message="It will disappear from the store for everyone."
+        confirmLabel="Delete"
+        onConfirm={() => confirmingDelete && deletePrize(confirmingDelete.id)}
+        onCancel={() => setConfirmingDelete(null)}
+      />
 
       {/* ── Add Prize Modal ── */}
       <Modal open={showAddPrize} onClose={() => setShowAddPrize(false)} title="New Prize">

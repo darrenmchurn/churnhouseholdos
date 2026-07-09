@@ -6,10 +6,15 @@ import { prisma } from "@/lib/prisma"
 import { chicagoTodayStr } from "@/lib/utils"
 import { GroceryTabs } from "./GroceryTabs"
 
-export default async function GroceryPage() {
+export default async function GroceryPage(props: {
+  searchParams: Promise<{ tab?: string }>
+}) {
   const session = await auth()
   if (!session) redirect("/login")
   if (session.user.role === "KIOSK") redirect("/dashboard")
+
+  const { tab } = await props.searchParams
+  const initialTab = tab === "meals" || tab === "nutrition" ? tab : "grocery"
 
   const canManage = session.user.role === "ADMIN" || session.user.role === "PARENT"
   // Chicago-local date, matching what NutritionTab shows on the client —
@@ -64,6 +69,7 @@ export default async function GroceryPage() {
       </div>
 
       <GroceryTabs
+        initialTab={initialTab}
         initialItems={items.map((i) => ({
           ...i,
           createdAt: i.createdAt.toISOString(),

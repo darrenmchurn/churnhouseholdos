@@ -195,7 +195,9 @@ export function ProfileForm({ initialName, initialAvatarColor, initialTheme, ini
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Save failed")
-      setProfileMsg({ ok: true, text: "Saved! Changes apply on next page load." })
+      // router.refresh() re-renders the root layout, which re-reads the theme
+      // from the DB — so the new theme applies immediately
+      setProfileMsg({ ok: true, text: "Saved!" })
       router.refresh()
     } catch (err) {
       setProfileMsg({ ok: false, text: err instanceof Error ? err.message : "Something went wrong" })

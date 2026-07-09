@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { ShoppingCart, Plus, Trash2, Check, X, ChevronDown } from "lucide-react"
+import { ConfirmSheet } from "@/components/ConfirmSheet"
 
 type GroceryItem = {
   id: string
@@ -37,6 +38,7 @@ export function GroceryList({
   const [category, setCategory] = useState("")
   const [saving, setSaving] = useState(false)
   const [showChecked, setShowChecked] = useState(false)
+  const [confirmingClear, setConfirmingClear] = useState(false)
   const nameRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -58,8 +60,10 @@ export function GroceryList({
       addedBy: { name: currentUser.name, avatarColor: currentUser.avatarColor },
     }
     setItems((prev) => [optimistic, ...prev])
-    setName(""); setQuantity(""); setCategory("")
-    setShowForm(false)
+    // Keep the form open and refocus for rapid multi-add — grocery entry is
+    // naturally batched; keep the category since runs often group (X closes)
+    setName(""); setQuantity("")
+    nameRef.current?.focus()
 
     try {
       const res = await fetch("/api/grocery", {
@@ -102,6 +106,7 @@ export function GroceryList({
   }
 
   async function clearCompleted() {
+    setConfirmingClear(false)
     setItems((prev) => prev.filter((it) => !it.completed))
     try { await fetch("/api/grocery", { method: "DELETE" }) } catch {}
     router.refresh()
@@ -221,7 +226,7 @@ export function GroceryList({
               />
             </button>
             {canManage && (
-              <button onClick={clearCompleted} className="text-xs text-red-500 font-medium hover:text-red-700 ml-3">
+              <button onClick={() => setConfirmingClear(true)} className="text-xs text-red-500 font-medium hover:text-red-700 ml-3">
                 Clear all
               </button>
             )}
@@ -235,6 +240,15 @@ export function GroceryList({
           )}
         </div>
       )}
+
+      <ConfirmSheet
+        open={confirmingClear}
+        title={`Clear ${completed.length} checked-off item${completed.length !== 1 ? "s" : ""}?`}
+        message="They'll be removed from the list for everyone."
+        confirmLabel="Clear all"
+        onConfirm={clearCompleted}
+        onCancel={() => setConfirmingClear(false)}
+      />
     </div>
   )
 }

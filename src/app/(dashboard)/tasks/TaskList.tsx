@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { CheckCircle2, Circle, Trash2, CalendarDays, Flag } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { ConfirmSheet } from "@/components/ConfirmSheet"
 
 type Assignee = { id: string; name: string; avatarColor: string }
 type Task = {
@@ -45,6 +46,7 @@ export function TaskList({
   const [filter, setFilter] = useState<Filter>("active")
   const [toggling, setToggling] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [confirmingDelete, setConfirmingDelete] = useState<Task | null>(null)
 
   const filtered = tasks.filter((t) => {
     if (filter === "active") return !t.completed
@@ -59,16 +61,25 @@ export function TaskList({
     setTasks((prev) =>
       prev.map((t) => (t.id === task.id ? { ...t, completed: next } : t))
     )
-    await fetch(`/api/tasks/${task.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ completed: next }),
-    })
+    try {
+      const res = await fetch(`/api/tasks/${task.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed: next }),
+      })
+      if (!res.ok) throw new Error()
+    } catch {
+      // Revert the optimistic flip so the UI matches reality
+      setTasks((prev) =>
+        prev.map((t) => (t.id === task.id ? { ...t, completed: task.completed } : t))
+      )
+    }
     setToggling(null)
     router.refresh()
   }
 
   async function deleteTask(id: string) {
+    setConfirmingDelete(null)
     setDeleting(id)
     setTasks((prev) => prev.filter((t) => t.id !== id))
     await fetch(`/api/tasks/${id}`, { method: "DELETE" })
@@ -116,15 +127,16 @@ export function TaskList({
             <div
               key={task.id}
               className={cn(
-                "bg-white rounded-2xl border border-slate-200 p-4 flex gap-3",
+                "bg-white rounded-2xl shadow-card-md p-4 flex gap-3",
                 task.completed && "opacity-60"
               )}
             >
-              {/* Complete toggle */}
+              {/* Complete toggle — padded to a comfortable touch target */}
               <button
                 onClick={() => toggleComplete(task)}
                 disabled={toggling === task.id}
-                className="flex-shrink-0 mt-0.5 text-slate-300 hover:text-indigo-500 transition-colors"
+                className="flex-shrink-0 w-10 h-10 -m-2 mt-[-0.375rem] flex items-center justify-center text-slate-300 hover:text-indigo-500 transition-colors"
+                aria-label={task.completed ? `Mark "${task.title}" not done` : `Mark "${task.title}" done`}
               >
                 {task.completed ? (
                   <CheckCircle2 size={22} className="text-indigo-500" />
@@ -142,10 +154,13 @@ export function TaskList({
                   )}>
                     {task.title}
                   </p>
-                  <span className={cn(
-                    "w-2 h-2 rounded-full flex-shrink-0 mt-1.5",
-                    PRIORITY_DOT[task.priority]
-                  )} title={PRIORITY_LABEL[task.priority]} />
+                  <span className="flex items-center gap-1 flex-shrink-0 mt-1">
+                    <span className={cn("w-2 h-2 rounded-full", PRIORITY_DOT[task.priority])} aria-hidden="true" />
+                    {task.priority === "HIGH" && !task.completed && (
+                      <span className="text-[10px] font-semibold text-red-500">High</span>
+                    )}
+                    <span className="sr-only">{PRIORITY_LABEL[task.priority]} priority</span>
+                  </span>
                 </div>
 
                 {task.description && (
@@ -153,17 +168,19 @@ export function TaskList({
                 )}
 
                 <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                  {task.dueDate && (
-                    <span className={cn(
-                      "flex items-center gap-1 text-xs",
-                      new Date(task.dueDate) < new Date() && !task.completed
-                        ? "text-red-500 font-medium"
-                        : "text-slate-400"
-                    )}>
-                      <CalendarDays size={11} />
-                      {new Date(task.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                    </span>
-                  )}
+                  {task.dueDate && (() => {
+                    const overdue = new Date(task.dueDate) < new Date() && !task.completed
+                    return (
+                      <span className={cn(
+                        "flex items-center gap-1 text-xs",
+                        overdue ? "text-red-500 font-medium" : "text-slate-400"
+                      )}>
+                        <CalendarDays size={11} />
+                        {overdue && "Overdue · "}
+                        {new Date(task.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </span>
+                    )
+                  })()}
                   {task.assignee && (
                     <span className="flex items-center gap-1 text-xs text-slate-400">
                       <span
@@ -181,9 +198,10 @@ export function TaskList({
               {/* Delete */}
               {canManage && (
                 <button
-                  onClick={() => deleteTask(task.id)}
+                  onClick={() => setConfirmingDelete(task)}
                   disabled={deleting === task.id}
-                  className="flex-shrink-0 text-slate-300 hover:text-red-400 transition-colors p-1"
+                  className="flex-shrink-0 w-9 h-9 -m-1.5 flex items-center justify-center text-slate-300 hover:text-red-400 transition-colors"
+                  aria-label={`Delete "${task.title}"`}
                 >
                   <Trash2 size={15} />
                 </button>
@@ -192,6 +210,15 @@ export function TaskList({
           ))}
         </div>
       )}
+
+      <ConfirmSheet
+        open={!!confirmingDelete}
+        title={confirmingDelete ? `Delete "${confirmingDelete.title}"?` : ""}
+        message="This can't be undone."
+        confirmLabel="Delete"
+        onConfirm={() => confirmingDelete && deleteTask(confirmingDelete.id)}
+        onCancel={() => setConfirmingDelete(null)}
+      />
     </div>
   )
 }

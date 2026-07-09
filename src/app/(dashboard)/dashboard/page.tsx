@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic"
 import Link from "next/link"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { formatDate, chicagoDayRange } from "@/lib/utils"
+import { formatDate, chicagoDayRange, relTime } from "@/lib/utils"
 import { signOut } from "@/lib/auth"
 import { isConfigured, getUpcomingCalEvents } from "@/lib/google-calendar"
 import type { CalEvent } from "@/lib/calendar-constants"
@@ -19,17 +19,6 @@ import {
 } from "lucide-react"
 import { avatarTextColor } from "@/lib/utils"
 import { KidsZoneSection } from "./KidsZoneSection"
-
-function relTime(date: Date): string {
-  const mins  = Math.floor((Date.now() - date.getTime()) / 60_000)
-  const hours = Math.floor(mins / 60)
-  const days  = Math.floor(hours / 24)
-  if (mins  <  1) return "just now"
-  if (mins  < 60) return `${mins}m ago`
-  if (hours < 24) return `${hours}h ago`
-  if (days  ===1) return "yesterday"
-  return `${days}d ago`
-}
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -340,15 +329,23 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Kiosk: family login button */}
+      {/* Kiosk: family login button — must sign the kiosk session out first,
+          otherwise the proxy bounces /login straight back to /dashboard */}
       {isKiosk && (
         <div className="fixed bottom-6 right-4">
-          <Link
-            href="/login"
-            className="flex items-center gap-2 h-11 px-4 rounded-xl bg-white border border-slate-200 shadow-sm text-slate-600 text-sm font-medium"
+          <form
+            action={async () => {
+              "use server"
+              await signOut({ redirectTo: "/login" })
+            }}
           >
-            Family Login
-          </Link>
+            <button
+              type="submit"
+              className="flex items-center gap-2 h-11 px-4 rounded-xl bg-white border border-slate-200 shadow-sm text-slate-600 text-sm font-medium"
+            >
+              Family Login
+            </button>
+          </form>
         </div>
       )}
     </div>
