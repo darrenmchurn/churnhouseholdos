@@ -1,25 +1,16 @@
 import { redirect } from "next/navigation"
-import { auth } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
+import { getSessionUserTheme } from "@/lib/user-theme"
 import { BottomNav } from "@/components/BottomNav"
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth()
-  if (!session) redirect("/login")
+  // Deduped with the root layout's call via React cache()
+  const user = await getSessionUserTheme()
+  if (!user) redirect("/login")
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { role: true, theme: true },
-  })
-
-  const role = user?.role ?? session.user.role
-  const theme = user?.theme ?? "default"
+  const { role, theme } = user
 
   return (
-    <div
-      className="flex flex-col min-h-screen"
-      data-theme={theme !== "default" ? theme : undefined}
-    >
+    <div className="flex flex-col min-h-screen">
       {/* pb accounts for fixed bottom nav height (5rem) + iPhone home-indicator safe area */}
       <main className="flex-1 overflow-y-auto scroll-container pb-[calc(5rem+env(safe-area-inset-bottom))]">
         {children}

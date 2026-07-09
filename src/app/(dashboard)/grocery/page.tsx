@@ -3,12 +3,8 @@ export const dynamic = "force-dynamic"
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
+import { chicagoTodayStr } from "@/lib/utils"
 import { GroceryTabs } from "./GroceryTabs"
-
-function todayStr(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-}
 
 export default async function GroceryPage() {
   const session = await auth()
@@ -16,7 +12,9 @@ export default async function GroceryPage() {
   if (session.user.role === "KIOSK") redirect("/dashboard")
 
   const canManage = session.user.role === "ADMIN" || session.user.role === "PARENT"
-  const today = todayStr()
+  // Chicago-local date, matching what NutritionTab shows on the client —
+  // the server's own date is UTC on Vercel and flips a day early each evening
+  const today = chicagoTodayStr()
 
   const [currentUser, items, meals, todayLog, recentWeights, savedFoods] = await Promise.all([
     prisma.user.findUnique({
@@ -45,7 +43,7 @@ export default async function GroceryPage() {
     }),
     prisma.weightLog.findMany({
       where: { userId: session.user.id },
-      orderBy: { date: "asc" },
+      orderBy: { date: "desc" }, // newest 30, reversed to ascending below for the chart
       take: 30,
     }),
     prisma.foodItem.findMany({
@@ -90,7 +88,7 @@ export default async function GroceryPage() {
           fat:           currentUser?.dailyFatGoal     ?? null,
           weightGoalLbs: currentUser?.weightGoalLbs    ?? null,
         }}
-        initialWeights={recentWeights}
+        initialWeights={[...recentWeights].reverse()}
         savedFoods={savedFoods}
       />
     </div>

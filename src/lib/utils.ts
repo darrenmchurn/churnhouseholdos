@@ -82,6 +82,27 @@ export function utcToChicago(iso: string): { date: string; time: string } {
   }
 }
 
+/**
+ * Today's date ("YYYY-MM-DD") in America/Chicago — the family's timezone.
+ * Server code must use this instead of the server's local date (UTC on Vercel),
+ * otherwise "today" flips to tomorrow at 6–7 PM Chicago time.
+ */
+export function chicagoTodayStr(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" })
+}
+
+/**
+ * The UTC instants spanning one Chicago-local calendar day (defaults to today).
+ * DST-safe: derives both boundaries from chicagoToUTC's offset probing.
+ */
+export function chicagoDayRange(dateStr: string = chicagoTodayStr()): { start: Date; end: Date } {
+  const [y, m, d] = dateStr.split("-").map(Number)
+  const nextStr = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10)
+  const start = new Date(chicagoToUTC(dateStr, "00:00"))
+  const end = new Date(new Date(chicagoToUTC(nextStr, "00:00")).getTime() - 1)
+  return { start, end }
+}
+
 /** Master list of selectable avatar background colors — shared by Profile and Admin */
 export const AVATAR_COLORS = [
   "#6366f1", "#8b5cf6", "#ec4899", "#f59e0b",

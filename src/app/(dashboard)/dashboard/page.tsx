@@ -1,8 +1,9 @@
 export const dynamic = "force-dynamic"
 
+import Link from "next/link"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { formatDate } from "@/lib/utils"
+import { formatDate, chicagoDayRange } from "@/lib/utils"
 import { signOut } from "@/lib/auth"
 import { isConfigured, getUpcomingCalEvents } from "@/lib/google-calendar"
 import type { CalEvent } from "@/lib/calendar-constants"
@@ -35,9 +36,8 @@ export default async function DashboardPage() {
   if (!session) return null
 
   const { id: userId, role } = session.user
-  const today = new Date()
-  const todayStart = new Date(today.setHours(0, 0, 0, 0))
-  const todayEnd = new Date(today.setHours(23, 59, 59, 999))
+  // "Today" as the family experiences it (Chicago), not the server's UTC day
+  const { start: todayStart, end: todayEnd } = chicagoDayRange()
 
   const isAdmin  = role === "ADMIN"
   const isParent = role === "PARENT"
@@ -173,34 +173,34 @@ export default async function DashboardPage() {
         </div>
         <div className="flex items-center gap-1.5">
           {!isKiosk && (
-            <a
+            <Link
               href="/prizes"
               className="flex items-center gap-1.5 bg-gradient-to-br from-amber-50 to-amber-100/70 rounded-2xl px-3 py-2 active:scale-95 transition-all shadow-card hover:shadow-card-md"
               title="View prizes"
             >
               <Star size={14} className="text-amber-500" fill="currentColor" />
               <span className="font-bold text-amber-700 text-sm leading-none">{myPoints}</span>
-            </a>
+            </Link>
           )}
           {canSeeAll && (
-            <a
+            <Link
               href="/admin"
               className="w-10 h-10 rounded-2xl flex items-center justify-center bg-slate-100 text-slate-500 hover:bg-slate-200 hover:shadow-card transition-all active:scale-90"
               title="Admin settings"
               aria-label="Admin settings"
             >
               <Settings size={17} />
-            </a>
+            </Link>
           )}
-          <a
+          <Link
             href="/profile"
             className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-base shadow-card hover:shadow-card-md active:scale-90 transition-all ${avatarTextColor(avatarColor)}${avatarColor === "#ffffff" ? " ring-1 ring-slate-200" : ""}`}
             style={{ backgroundColor: avatarColor }}
             title="Profile & settings"
             aria-label="Profile & settings"
           >
-            {name[0].toUpperCase()}
-          </a>
+            {(name[0] ?? "?").toUpperCase()}
+          </Link>
           {!isKiosk && (
             <form
               action={async () => {
@@ -245,7 +245,7 @@ export default async function DashboardPage() {
         {stats.map((stat) => {
           const Icon = stat.icon
           return (
-            <a
+            <Link
               key={stat.label}
               href={stat.href}
               className="bg-white rounded-2xl p-5 shadow-card-md flex items-center gap-3 active:scale-95 transition-transform"
@@ -257,7 +257,7 @@ export default async function DashboardPage() {
                 <p className="text-3xl font-extrabold text-slate-900 leading-none">{stat.value}</p>
                 <p className="text-xs text-slate-500 mt-1">{stat.label}</p>
               </div>
-            </a>
+            </Link>
           )
         })}
       </div>
@@ -273,9 +273,9 @@ export default async function DashboardPage() {
             <CalendarDays size={28} className="mx-auto text-slate-300 mb-2" />
             <p className="text-sm text-slate-500">No upcoming events</p>
             {canSeeAll && (
-              <a href="/calendar" className="text-sm text-indigo-600 font-medium mt-1 inline-block">
+              <Link href="/calendar" className="text-sm text-indigo-600 font-medium mt-1 inline-block">
                 Add one →
-              </a>
+              </Link>
             )}
           </div>
         ) : (
@@ -314,9 +314,9 @@ export default async function DashboardPage() {
               <History size={16} className="text-slate-400" />
               Recent Activity
             </h2>
-            <a href="/activity" className="text-xs text-indigo-600 font-medium">
+            <Link href="/activity" className="text-xs text-indigo-600 font-medium">
               See all →
-            </a>
+            </Link>
           </div>
           <div className="bg-white rounded-2xl divide-y divide-slate-100 overflow-hidden shadow-card-md">
             {recentActivity.map((log) => (
@@ -343,12 +343,12 @@ export default async function DashboardPage() {
       {/* Kiosk: family login button */}
       {isKiosk && (
         <div className="fixed bottom-6 right-4">
-          <a
+          <Link
             href="/login"
             className="flex items-center gap-2 h-11 px-4 rounded-xl bg-white border border-slate-200 shadow-sm text-slate-600 text-sm font-medium"
           >
             Family Login
-          </a>
+          </Link>
         </div>
       )}
     </div>

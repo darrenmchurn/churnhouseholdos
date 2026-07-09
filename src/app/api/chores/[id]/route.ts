@@ -25,21 +25,23 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
 
     const whoCompleted = chore.completedById
 
-    const updated = await prisma.chore.update({
-      where: { id },
-      data:  { lastCompleted: null, completedById: null },
-      include: {
-        assignee:    { select: { id: true, name: true, avatarColor: true } },
-        completedBy: { select: { id: true, name: true, avatarColor: true } },
-      },
-    })
-
-    // Reverse the points that were awarded
-    if (whoCompleted && chore.pointValue > 0) {
-      await prisma.pointTransaction.create({
-        data: { userId: whoCompleted, points: -chore.pointValue, reason: `Undo: ${chore.title}` },
+    // Chore update + star reversal succeed or fail together
+    const updated = await prisma.$transaction(async (tx) => {
+      const u = await tx.chore.update({
+        where: { id },
+        data:  { lastCompleted: null, completedById: null },
+        include: {
+          assignee:    { select: { id: true, name: true, avatarColor: true } },
+          completedBy: { select: { id: true, name: true, avatarColor: true } },
+        },
       })
-    }
+      if (whoCompleted && chore.pointValue > 0) {
+        await tx.pointTransaction.create({
+          data: { userId: whoCompleted, points: -chore.pointValue, reason: `Undo: ${chore.title}` },
+        })
+      }
+      return u
+    })
 
     await logActivity(userId, "uncompleted", "chore", chore.title)
 
@@ -71,17 +73,6 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
     const oldCompleter = chore.completedById
     const newCompleter: string | null = body.completedById ?? null
 
-    if (oldCompleter !== newCompleter && chore.pointValue > 0) {
-      const txns: { userId: string; points: number; reason: string }[] = []
-      if (oldCompleter) {
-        txns.push({ userId: oldCompleter, points: -chore.pointValue, reason: `Reassigned: ${chore.title}` })
-      }
-      if (newCompleter) {
-        txns.push({ userId: newCompleter, points: chore.pointValue, reason: `Chore: ${chore.title}` })
-      }
-      if (txns.length) await prisma.pointTransaction.createMany({ data: txns })
-    }
-
     // Determine lastCompleted for the update
     let newLastCompleted: Date | null
     if (newCompleter === null) {
@@ -92,21 +83,35 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
       newLastCompleted = new Date()                 // back-fill
     }
 
-    const updated = await prisma.chore.update({
-      where: { id },
-      data: {
-        ...("title"      in body && { title:      body.title }),
-        ...("frequency"  in body && { frequency:  body.frequency }),
-        ...("pointValue" in body && { pointValue: body.pointValue }),
-        ...("assigneeId" in body && { assigneeId: body.assigneeId || null }),
-        ...("dueBy"      in body && { dueBy:      body.dueBy ? new Date(body.dueBy) : null }),
-        lastCompleted: newLastCompleted,
-        completedById: newCompleter,
-      },
-      include: {
-        assignee:    { select: { id: true, name: true, avatarColor: true } },
-        completedBy: { select: { id: true, name: true, avatarColor: true } },
-      },
+    // Star transfer + chore update succeed or fail together
+    const updated = await prisma.$transaction(async (tx) => {
+      if (oldCompleter !== newCompleter && chore.pointValue > 0) {
+        const txns: { userId: string; points: number; reason: string }[] = []
+        if (oldCompleter) {
+          txns.push({ userId: oldCompleter, points: -chore.pointValue, reason: `Reassigned: ${chore.title}` })
+        }
+        if (newCompleter) {
+          txns.push({ userId: newCompleter, points: chore.pointValue, reason: `Chore: ${chore.title}` })
+        }
+        if (txns.length) await tx.pointTransaction.createMany({ data: txns })
+      }
+
+      return tx.chore.update({
+        where: { id },
+        data: {
+          ...("title"      in body && { title:      body.title }),
+          ...("frequency"  in body && { frequency:  body.frequency }),
+          ...("pointValue" in body && { pointValue: body.pointValue }),
+          ...("assigneeId" in body && { assigneeId: body.assigneeId || null }),
+          ...("dueBy"      in body && { dueBy:      body.dueBy ? new Date(body.dueBy) : null }),
+          lastCompleted: newLastCompleted,
+          completedById: newCompleter,
+        },
+        include: {
+          assignee:    { select: { id: true, name: true, avatarColor: true } },
+          completedBy: { select: { id: true, name: true, avatarColor: true } },
+        },
+      })
     })
 
     await logActivity(userId, "updated", "chore", chore.title)
@@ -118,39 +123,54 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
     })
   }
 
-  const updated = await prisma.chore.update({
-    where: { id },
-    data: isEditUpdate
-      ? {
-          ...("title"      in body && { title:      body.title }),
-          ...("frequency"  in body && { frequency:  body.frequency }),
-          ...("pointValue" in body && { pointValue: body.pointValue }),
-          ...("assigneeId" in body && { assigneeId: body.assigneeId || null }),
-          ...("dueBy"      in body && { dueBy:      body.dueBy ? new Date(body.dueBy) : null }),
-          ...("complete"   in body && body.complete && {
+  const isCompletion = !isEditUpdate || ("complete" in body && body.complete)
+
+  // Guard against double-completion (rapid taps, or two devices at once) so
+  // stars are never awarded twice for the same cycle. Mirrors the board's
+  // isDue logic: a recurring chore whose cycle has elapsed may be completed
+  // again even though completedById is still set from last time.
+  const FREQ_DAYS: Record<string, number> = { DAILY: 1, WEEKLY: 7, BIWEEKLY: 14, MONTHLY: 30 }
+  const dueAgain =
+    chore.frequency !== "ONE_TIME" &&
+    !!chore.lastCompleted &&
+    Date.now() >= chore.lastCompleted.getTime() + (FREQ_DAYS[chore.frequency] ?? 7) * 86_400_000
+  if (isCompletion && chore.completedById && !dueAgain) {
+    return NextResponse.json({ error: "Chore already completed" }, { status: 409 })
+  }
+
+  // Chore update + star award succeed or fail together
+  const updated = await prisma.$transaction(async (tx) => {
+    const u = await tx.chore.update({
+      where: { id },
+      data: isEditUpdate
+        ? {
+            ...("title"      in body && { title:      body.title }),
+            ...("frequency"  in body && { frequency:  body.frequency }),
+            ...("pointValue" in body && { pointValue: body.pointValue }),
+            ...("assigneeId" in body && { assigneeId: body.assigneeId || null }),
+            ...("dueBy"      in body && { dueBy:      body.dueBy ? new Date(body.dueBy) : null }),
+            ...("complete"   in body && body.complete && {
+              lastCompleted: new Date(),
+              completedById: userId,
+            }),
+          }
+        : {
+            // Plain completion (child marking their own chore done)
             lastCompleted: new Date(),
             completedById: userId,
-          }),
-        }
-      : {
-          // Plain completion (child marking their own chore done)
-          lastCompleted: new Date(),
-          completedById: userId,
-        },
-    include: { assignee: { select: { id: true, name: true, avatarColor: true } } },
-  })
+          },
+      include: { assignee: { select: { id: true, name: true, avatarColor: true } } },
+    })
 
-  const isCompletion = !isEditUpdate || ("complete" in body && body.complete)
-  if (isCompletion) {
-    await logActivity(userId, "completed", "chore", chore.title)
-    if (chore.pointValue > 0) {
-      await prisma.pointTransaction.create({
+    if (isCompletion && chore.pointValue > 0) {
+      await tx.pointTransaction.create({
         data: { userId, points: chore.pointValue, reason: `Chore: ${chore.title}` },
       })
     }
-  } else {
-    await logActivity(userId, "updated", "chore", chore.title)
-  }
+    return u
+  })
+
+  await logActivity(userId, isCompletion ? "completed" : "updated", "chore", chore.title)
 
   return NextResponse.json({
     ...updated,

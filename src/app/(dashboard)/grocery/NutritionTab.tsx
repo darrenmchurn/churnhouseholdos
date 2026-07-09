@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
+import Link from "next/link"
 import {
   ChevronLeft, ChevronRight, Plus, X, Trash2,
   Camera, Pencil, Flame, Scale, BookOpen, ArrowLeft, Search,
@@ -397,9 +398,9 @@ function WeightCard({
       {!goalLbs && !latest && (
         <p className="text-xs text-slate-400 text-center">
           Set a goal weight in your{" "}
-          <a href="/profile" className="text-indigo-500 font-medium underline-offset-2 hover:underline">
+          <Link href="/profile" className="text-indigo-500 font-medium underline-offset-2 hover:underline">
             Profile
-          </a>
+          </Link>
         </p>
       )}
     </div>
@@ -542,9 +543,9 @@ export function NutritionTab({
         {!goals.calories && !goals.protein && (
           <p className="text-xs text-slate-500 text-center pt-1">
             Set goals in your{" "}
-            <a href="/profile" className="text-indigo-600 font-medium underline-offset-2 hover:underline">
+            <Link href="/profile" className="text-indigo-600 font-medium underline-offset-2 hover:underline">
               Profile
-            </a>{" "}
+            </Link>{" "}
             to see progress bars
           </p>
         )}
@@ -886,7 +887,7 @@ function AddFoodSheet({
     >
       <div className="absolute inset-0 bg-black/40" onClick={onClose} aria-hidden="true" />
       <div
-        className="relative bg-white rounded-t-3xl px-4 pt-4 max-h-[90vh] overflow-hidden flex flex-col"
+        className="relative bg-white rounded-t-3xl px-4 pt-4 max-h-[85dvh] overflow-hidden flex flex-col"
         style={{ paddingBottom: "max(2rem, env(safe-area-inset-bottom))" }}
       >
         <div className="w-10 h-1 rounded-full bg-slate-200 mx-auto mb-4" aria-hidden="true" />
@@ -1166,8 +1167,9 @@ function AddFoodSheet({
             role="tabpanel"
             aria-label="Manual food entry"
             onSubmit={handleSubmit}
-            className="flex-1 overflow-y-auto overscroll-contain space-y-3 min-h-0 pb-4"
+            className="flex-1 flex flex-col min-h-0"
           >
+          <div className="flex-1 overflow-y-auto overscroll-contain space-y-3 min-h-0 pb-3">
             {lookupMsg && (
               <div className="bg-slate-50 rounded-xl px-3 py-2.5 text-sm text-slate-700" role="status" aria-live="polite">
                 {lookupMsg}
@@ -1257,15 +1259,19 @@ function AddFoodSheet({
               </div>
             )}
 
-            {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
+          </div>
 
-            <button
-              type="submit"
-              disabled={saving || !name.trim()}
-              className="w-full h-11 rounded-xl bg-orange-500 text-white font-semibold text-sm disabled:opacity-50"
-            >
-              {saving ? "Adding…" : "Add to Log"}
-            </button>
+            {/* Pinned footer — stays visible while the form body scrolls */}
+            <div className="flex-shrink-0 pt-2 space-y-2">
+              {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
+              <button
+                type="submit"
+                disabled={saving || !name.trim()}
+                className="w-full h-11 rounded-xl bg-orange-500 text-white font-semibold text-sm disabled:opacity-50"
+              >
+                {saving ? "Adding…" : "Add to Log"}
+              </button>
+            </div>
           </form>
         )}
         </div>

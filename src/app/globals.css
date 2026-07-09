@@ -10,6 +10,10 @@
 
 body {
   overscroll-behavior: none;
+  /* Default page background; themed [data-theme] blocks below override it.
+     Living here (on body, not a wrapper div) lets it propagate to the canvas
+     so iOS overscroll shows the theme color instead of flashing. */
+  background-color: #f4f4f6;
 }
 
 /* Smooth scrolling for the app shell */
