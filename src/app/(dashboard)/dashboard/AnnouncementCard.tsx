@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Megaphone, ChevronDown } from "lucide-react"
+import { Pin, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type Announcement = {
@@ -31,7 +31,7 @@ export function AnnouncementCard({ announcement }: { announcement: Announcement 
         aria-expanded={clampable ? expanded : undefined}
       >
         <div className="flex items-center gap-2">
-          <Megaphone size={14} className="text-indigo-500 flex-shrink-0" />
+          <Pin size={14} className="text-indigo-500 flex-shrink-0" />
           <p className="font-semibold text-slate-900 text-sm flex-1 min-w-0 truncate">
             {announcement.title}
           </p>

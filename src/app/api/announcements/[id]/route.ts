@@ -14,7 +14,7 @@ export async function PATCH(req: NextRequest, props: Props) {
 
   const { id } = await props.params
   const body = await req.json()
-  const { title, body: text, expiresAt } = body
+  const { title, body: text, expiresAt, visibleToIds } = body
 
   if (!title?.trim() || !text?.trim()) {
     return NextResponse.json({ error: "Title and message are required" }, { status: 400 })
@@ -26,11 +26,21 @@ export async function PATCH(req: NextRequest, props: Props) {
       title: title.trim(),
       body: text.trim(),
       expiresAt: expiresAt ? new Date(expiresAt) : null,
+      // Audience: array of user ids; empty = everyone. Only touch it when sent.
+      ...(Array.isArray(visibleToIds)
+        ? { visibleToIds: visibleToIds.filter((v: unknown): v is string => typeof v === "string" && v.length > 0) }
+        : {}),
     },
     include: { creator: { select: { name: true, avatarColor: true } } },
   })
 
-  await logActivity(session.user.id, "updated", "announcement", updated.title)
+  // Don't leak targeted-note titles into the shared activity feed
+  await logActivity(
+    session.user.id,
+    "updated",
+    "note",
+    updated.visibleToIds.length > 0 ? "a private note" : updated.title
+  )
 
   return NextResponse.json({
     ...updated,
@@ -47,10 +57,17 @@ export async function DELETE(_req: NextRequest, props: Props) {
   }
 
   const { id } = await props.params
-  const a = await prisma.announcement.findUnique({ where: { id }, select: { title: true } })
+  const a = await prisma.announcement.findUnique({ where: { id }, select: { title: true, visibleToIds: true } })
   await prisma.announcement.delete({ where: { id } })
 
-  if (a) await logActivity(session.user.id, "deleted", "announcement", a.title)
+  if (a) {
+    await logActivity(
+      session.user.id,
+      "deleted",
+      "note",
+      a.visibleToIds.length > 0 ? "a private note" : a.title
+    )
+  }
 
   return NextResponse.json({ ok: true })
 }

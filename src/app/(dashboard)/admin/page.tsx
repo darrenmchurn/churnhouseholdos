@@ -34,15 +34,18 @@ export default async function AdminPage() {
         <p className="text-slate-500 text-sm mt-0.5">Manage your household</p>
       </div>
 
-      {/* Announcements */}
+      {/* Family Board — announcements & notes */}
       <section>
-        <h2 className="text-base font-semibold text-slate-700 mb-3">Announcements</h2>
+        <h2 className="text-base font-semibold text-slate-700 mb-3">📌 Family Board</h2>
         <AnnouncementManager
           announcements={announcements.map((a) => ({
             ...a,
             expiresAt: a.expiresAt ? a.expiresAt.toISOString() : null,
             createdAt: a.createdAt.toISOString(),
           }))}
+          users={users
+            .filter((u) => u.role !== "KIOSK")
+            .map((u) => ({ id: u.id, name: u.name, avatarColor: u.avatarColor }))}
         />
       </section>
 
@@ -122,10 +125,11 @@ export default async function AdminPage() {
           </div>
 
           <div>
-            <p className="font-semibold text-slate-900 mb-1.5">📣 Announcements</p>
+            <p className="font-semibold text-slate-900 mb-1.5">📌 Family Board</p>
             <ul className="space-y-1 pl-1">
-              <li>Pinned messages shown at the top of every family member's home screen.</li>
-              <li>Optional expiry date/time (CST). Expired announcements auto-hide from the home screen but remain visible here until deleted.</li>
+              <li>Announcements and notes pinned to the top of the home screen.</li>
+              <li>Each note can be visible to <span className="font-medium">Everyone</span> (default) or only the family members you pick.</li>
+              <li>Optional expiry date/time (CST). Expired notes auto-hide from the home screen but remain visible here until deleted.</li>
             </ul>
           </div>
 

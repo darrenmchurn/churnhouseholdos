@@ -60,7 +60,11 @@ export default async function DashboardPage() {
       }),
       prisma.announcement.findMany({
         where: {
-          OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }],
+          // Not expired, and addressed to everyone (empty audience) or to this viewer
+          AND: [
+            { OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }] },
+            { OR: [{ visibleToIds: { isEmpty: true } }, { visibleToIds: { has: userId } }] },
+          ],
         },
         orderBy: { createdAt: "desc" },
         take: 3,

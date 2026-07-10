@@ -133,6 +133,9 @@ model Announcement {
   expiresAt DateTime?
   createdAt DateTime  @default(now())
 
+  // Board-note audience: user ids who can see it. Empty = visible to everyone.
+  visibleToIds String[] @default([])
+
   creatorId String
   creator   User   @relation(fields: [creatorId], references: [id])
 }

@@ -2,8 +2,8 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { X, Megaphone, Plus, Trash2, Pencil } from "lucide-react"
-import { chicagoToUTC } from "@/lib/utils"
+import { X, Pin, Plus, Trash2, Pencil } from "lucide-react"
+import { chicagoToUTC, cn } from "@/lib/utils"
 import { Modal } from "@/components/Modal"
 
 type Announcement = {
@@ -12,7 +12,67 @@ type Announcement = {
   body: string
   expiresAt: string | null
   createdAt: string
+  visibleToIds: string[]
   creator: { name: string; avatarColor: string }
+}
+
+type FamilyUser = { id: string; name: string; avatarColor: string }
+
+/** Chip row for choosing who a note is for. Empty selection = everyone. */
+function AudiencePicker({
+  users, selected, onChange,
+}: {
+  users: FamilyUser[]
+  selected: string[]
+  onChange: (ids: string[]) => void
+}) {
+  const everyone = selected.length === 0
+
+  function toggle(id: string) {
+    const next = selected.includes(id)
+      ? selected.filter((x) => x !== id)
+      : [...selected, id]
+    // Hand-picking every member is the same as Everyone
+    onChange(next.length === users.length ? [] : next)
+  }
+
+  const chipCls = (active: boolean) =>
+    cn(
+      "h-8 px-3 rounded-full text-xs font-semibold border transition-colors flex items-center gap-1.5",
+      active
+        ? "bg-indigo-600 border-indigo-600 text-white"
+        : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
+    )
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      <button type="button" onClick={() => onChange([])} className={chipCls(everyone)} aria-pressed={everyone}>
+        Everyone
+      </button>
+      {users.map((u) => {
+        const active = !everyone && selected.includes(u.id)
+        return (
+          <button key={u.id} type="button" onClick={() => toggle(u.id)} className={chipCls(active)} aria-pressed={active}>
+            <span
+              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+              style={{ backgroundColor: u.avatarColor }}
+              aria-hidden="true"
+            />
+            {u.name}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+/** "Everyone" or a short name list for the note row meta line. */
+function audienceLabel(visibleToIds: string[], users: FamilyUser[]): string {
+  if (visibleToIds.length === 0) return "Everyone"
+  const names = visibleToIds
+    .map((id) => users.find((u) => u.id === id)?.name)
+    .filter(Boolean)
+  return names.length > 0 ? names.join(", ") : "Everyone"
 }
 
 /** Convert a UTC ISO string back to Chicago-local date ("YYYY-MM-DD") and time ("HH:MM"). */
@@ -35,7 +95,7 @@ function utcToChicago(iso: string): { date: string; time: string } {
   }
 }
 
-export function AnnouncementManager({ announcements }: { announcements: Announcement[] }) {
+export function AnnouncementManager({ announcements, users }: { announcements: Announcement[]; users: FamilyUser[] }) {
   const router = useRouter()
   const [items, setItems] = useState<Announcement[]>(announcements)
 
@@ -45,6 +105,7 @@ export function AnnouncementManager({ announcements }: { announcements: Announce
   const [body, setBody] = useState("")
   const [expiresDate, setExpiresDate] = useState("")
   const [expiresTime, setExpiresTime] = useState("08:00")
+  const [visibleTo, setVisibleTo] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
 
@@ -54,6 +115,7 @@ export function AnnouncementManager({ announcements }: { announcements: Announce
   const [editBody, setEditBody] = useState("")
   const [editExpiresDate, setEditExpiresDate] = useState("")
   const [editExpiresTime, setEditExpiresTime] = useState("08:00")
+  const [editVisibleTo, setEditVisibleTo] = useState<string[]>([])
   const [editSaving, setEditSaving] = useState(false)
   const [editError, setEditError] = useState("")
 
@@ -68,6 +130,7 @@ export function AnnouncementManager({ announcements }: { announcements: Announce
       setEditExpiresDate("")
       setEditExpiresTime("08:00")
     }
+    setEditVisibleTo(a.visibleToIds ?? [])
     setEditError("")
     setEditingId(a.id)
   }
@@ -82,7 +145,7 @@ export function AnnouncementManager({ announcements }: { announcements: Announce
       const res = await fetch("/api/announcements", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, body, expiresAt }),
+        body: JSON.stringify({ title, body, expiresAt, visibleToIds: visibleTo }),
       })
       if (!res.ok) {
         const d = await res.json()
@@ -90,7 +153,7 @@ export function AnnouncementManager({ announcements }: { announcements: Announce
       }
       const created = await res.json()
       setItems((prev) => [created, ...prev])
-      setTitle(""); setBody(""); setExpiresDate(""); setExpiresTime("08:00")
+      setTitle(""); setBody(""); setExpiresDate(""); setExpiresTime("08:00"); setVisibleTo([])
       setShowForm(false)
       router.refresh()
     } catch (err) {
@@ -110,7 +173,7 @@ export function AnnouncementManager({ announcements }: { announcements: Announce
       const res = await fetch(`/api/announcements/${editingId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: editTitle, body: editBody, expiresAt }),
+        body: JSON.stringify({ title: editTitle, body: editBody, expiresAt, visibleToIds: editVisibleTo }),
       })
       if (!res.ok) {
         const d = await res.json()
@@ -143,7 +206,7 @@ export function AnnouncementManager({ announcements }: { announcements: Announce
       {showForm ? (
         <form onSubmit={createAnnouncement} className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <p className="font-semibold text-slate-900 text-sm">New Announcement</p>
+            <p className="font-semibold text-slate-900 text-sm">New Note</p>
             <button type="button" onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600">
               <X size={18} />
             </button>
@@ -171,6 +234,10 @@ export function AnnouncementManager({ announcements }: { announcements: Announce
             />
           </div>
           <div>
+            <label className="text-xs font-medium text-slate-600 block mb-1.5">Who can see it</label>
+            <AudiencePicker users={users} selected={visibleTo} onChange={setVisibleTo} />
+          </div>
+          <div>
             <label className="text-xs font-medium text-slate-600 block mb-1">Expires (optional)</label>
             <div className="flex gap-2">
               <input
@@ -194,7 +261,7 @@ export function AnnouncementManager({ announcements }: { announcements: Announce
             disabled={saving || !title.trim() || !body.trim()}
             className="w-full h-11 rounded-xl bg-indigo-600 text-white font-semibold text-sm disabled:opacity-50"
           >
-            {saving ? "Posting…" : "Post Announcement"}
+            {saving ? "Posting…" : "Post to Board"}
           </button>
         </form>
       ) : (
@@ -203,15 +270,15 @@ export function AnnouncementManager({ announcements }: { announcements: Announce
           className="w-full h-11 rounded-xl border-2 border-dashed border-slate-300 text-slate-500 text-sm font-medium hover:border-indigo-300 hover:text-indigo-500 transition-colors flex items-center justify-center gap-2"
         >
           <Plus size={16} />
-          New Announcement
+          New Note
         </button>
       )}
 
       {/* List */}
       {items.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center">
-          <Megaphone size={28} className="mx-auto text-slate-300 mb-2" />
-          <p className="text-sm text-slate-500">No announcements yet</p>
+          <Pin size={28} className="mx-auto text-slate-300 mb-2" />
+          <p className="text-sm text-slate-500">Nothing on the board yet</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -234,6 +301,10 @@ export function AnnouncementManager({ announcements }: { announcements: Announce
                   <p className="text-sm text-slate-600 whitespace-pre-wrap">{a.body}</p>
                   <p className="text-xs text-slate-400 mt-1.5">
                     By {a.creator.name}
+                    {" · for "}
+                    <span className={a.visibleToIds.length > 0 ? "font-semibold text-indigo-500" : undefined}>
+                      {audienceLabel(a.visibleToIds, users)}
+                    </span>
                     {a.expiresAt && !expired && (
                       <> · expires {new Date(a.expiresAt).toLocaleDateString("en-US", { timeZone: "America/Chicago", month: "short", day: "numeric" })} at {new Date(a.expiresAt).toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" })}</>
                     )}
@@ -263,7 +334,7 @@ export function AnnouncementManager({ announcements }: { announcements: Announce
       <Modal
         open={editingId !== null}
         onClose={() => setEditingId(null)}
-        title="Edit Announcement"
+        title="Edit Note"
       >
         <form onSubmit={saveEdit} className="space-y-4">
           <div>
@@ -285,6 +356,10 @@ export function AnnouncementManager({ announcements }: { announcements: Announce
               rows={4}
               className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
             />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-slate-600 block mb-1.5">Who can see it</label>
+            <AudiencePicker users={users} selected={editVisibleTo} onChange={setEditVisibleTo} />
           </div>
           <div>
             <label className="text-xs font-medium text-slate-600 block mb-1">Expires (optional)</label>
