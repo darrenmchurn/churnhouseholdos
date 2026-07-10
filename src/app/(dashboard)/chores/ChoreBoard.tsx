@@ -405,6 +405,11 @@ export function ChoreBoard({
       return bTime - aTime
     })
 
+  // Family recap for the collapsed Completed header
+  const thisMonthKey   = monthKey(new Date().toISOString())
+  const doneThisMonth  = done.filter((c) => monthKey(c.lastCompleted) === thisMonthKey)
+  const starsThisMonth = doneThisMonth.reduce((sum, c) => sum + c.pointValue, 0)
+
   function flashError(msg: string) {
     setActionError(msg)
     setTimeout(() => setActionError(null), 4000)
@@ -539,8 +544,13 @@ export function ChoreBoard({
               <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
                 <CheckCircle2 size={12} className="text-emerald-600" />
               </div>
-              <span className="flex-1 text-left text-sm font-semibold text-slate-700">
-                Completed
+              <span className="flex-1 text-left">
+                <span className="block text-sm font-semibold text-slate-700">Completed</span>
+                {doneThisMonth.length > 0 && (
+                  <span className="block text-xs text-slate-400 mt-0.5">
+                    {doneThisMonth.length} this month · {starsThisMonth} <Star size={9} className="inline text-amber-500 -mt-0.5" fill="currentColor" /> earned
+                  </span>
+                )}
               </span>
               <span className="text-xs text-slate-400 mr-1">{done.length}</span>
               <ChevronDown

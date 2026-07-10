@@ -61,13 +61,24 @@ export function BottomNav({ role, theme }: { role: string; theme: string }) {
                 active ? "text-indigo-600" : "text-slate-500"
               )}
             >
-              <Icon
-                size={iconSize}
-                strokeWidth={active ? 2.5 : 1.8}
-                className={cn(active && "scale-110 transition-transform")}
-              />
+              {/* Kids theme: the emoji IS the icon — inlining it in the label
+                  overflows six 63px-wide slots on a 375px screen */}
+              {isKids ? (
+                <span
+                  className={cn("text-[22px] leading-none", active && "scale-110 transition-transform")}
+                  aria-hidden="true"
+                >
+                  {item.emoji}
+                </span>
+              ) : (
+                <Icon
+                  size={iconSize}
+                  strokeWidth={active ? 2.5 : 1.8}
+                  className={cn(active && "scale-110 transition-transform")}
+                />
+              )}
               <span className={cn("font-medium leading-none", labelSize)}>
-                {isKids ? `${item.emoji} ${item.label}` : item.label}
+                {item.label}
               </span>
             </Link>
           )

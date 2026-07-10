@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { isConfigured, getMonthCalEvents } from "@/lib/google-calendar"
+import { chicagoTodayStr } from "@/lib/utils"
 import { CalendarView } from "./CalendarView"
 import type { CalEvent } from "@/lib/calendar-constants"
 
@@ -22,9 +23,11 @@ export default async function CalendarPage() {
   const avatarColors  = [...new Set(avatarUsers.map((u) => u.avatarColor))]
   const myAvatarColor = avatarUsers.find((u) => u.id === session.user.id)?.avatarColor ?? "#6366f1"
 
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth()
+  // Chicago-local today — the server's own date is UTC on Vercel and would
+  // highlight tomorrow (and even flip the month) each Chicago evening
+  const today = chicagoTodayStr()
+  const [year, monthNum] = today.split("-").map(Number)
+  const month = monthNum - 1
   const timeMin = new Date(year, month, 1)
   const timeMax = new Date(year, month + 1, 0, 23, 59, 59)
 
@@ -72,7 +75,7 @@ export default async function CalendarPage() {
         initialEvents={events}
         initialYear={year}
         initialMonth={month}
-        today={now.toISOString().slice(0, 10)}
+        today={today}
         canManage={canManage}
         avatarColors={avatarColors}
         myAvatarColor={myAvatarColor}

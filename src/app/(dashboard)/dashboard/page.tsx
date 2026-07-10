@@ -12,13 +12,13 @@ import {
   Sparkles,
   CalendarDays,
   ShoppingCart,
-  LogOut,
   Star,
   Settings,
   History,
 } from "lucide-react"
 import { avatarTextColor } from "@/lib/utils"
 import { KidsZoneSection } from "./KidsZoneSection"
+import { AnnouncementCard } from "./AnnouncementCard"
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -153,14 +153,14 @@ export default async function DashboardPage() {
   return (
     <div className="px-4 pt-6 pb-4 max-w-2xl mx-auto space-y-6">
       {/* Header — gradient personality zone */}
-      <div className="bg-gradient-to-br from-white to-indigo-50/50 rounded-3xl px-4 py-4 shadow-card-md flex items-center justify-between">
-        <div>
+      <div className="bg-gradient-to-br from-white to-indigo-50/50 rounded-3xl px-4 py-4 shadow-card-md flex items-center justify-between gap-2">
+        <div className="min-w-0">
           <p className="text-[10px] font-semibold tracking-widest uppercase text-indigo-500">{formatDate(new Date())}</p>
-          <h1 className="text-[1.6rem] font-bold text-slate-900 mt-1 leading-tight">
+          <h1 className="text-[1.6rem] font-bold text-slate-900 mt-1 leading-tight break-words">
             {isKiosk ? "Churn Household OS" : `Hey, ${name}! 👋`}
           </h1>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           {!isKiosk && (
             <Link
               href="/prizes"
@@ -190,22 +190,6 @@ export default async function DashboardPage() {
           >
             {(name[0] ?? "?").toUpperCase()}
           </Link>
-          {!isKiosk && (
-            <form
-              action={async () => {
-                "use server"
-                await signOut({ redirectTo: "/login" })
-              }}
-            >
-              <button
-                type="submit"
-                className="w-11 h-11 rounded-2xl flex items-center justify-center bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
-                title="Sign out"
-              >
-                <LogOut size={18} />
-              </button>
-            </form>
-          )}
         </div>
       </div>
 
@@ -213,18 +197,17 @@ export default async function DashboardPage() {
       {announcements.length > 0 && (
         <div className="space-y-2">
           {announcements.map((a: { id: string; title: string; body: string; expiresAt: Date | null }) => (
-            <div key={a.id} className="bg-indigo-50/70 border-l-4 border-indigo-400 rounded-2xl p-4 shadow-card">
-              <p className="font-semibold text-indigo-900 text-sm">{a.title}</p>
-              <p className="text-indigo-700 text-sm mt-0.5 whitespace-pre-wrap">{a.body}</p>
-              {a.expiresAt && (
-                <p className="text-xs text-indigo-400 mt-1.5">
-                  Expires{" "}
-                  {a.expiresAt.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Chicago" })}
-                  {" at "}
-                  {a.expiresAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" })}
-                </p>
-              )}
-            </div>
+            <AnnouncementCard
+              key={a.id}
+              announcement={{
+                id: a.id,
+                title: a.title,
+                body: a.body,
+                expiresLabel: a.expiresAt
+                  ? `${a.expiresAt.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Chicago" })} at ${a.expiresAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" })}`
+                  : null,
+              }}
+            />
           ))}
         </div>
       )}

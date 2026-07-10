@@ -45,7 +45,9 @@ export function CalendarView({
   const [year, setYear]               = useState(initialYear)
   const [month, setMonth]             = useState(initialMonth)
   const [events, setEvents]           = useState<CalEvent[]>(initialEvents)
-  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  // Start with today selected so the page opens onto today's agenda
+  // instead of a bare grid with empty space below
+  const [selectedDate, setSelectedDate] = useState<string | null>(today)
   const [deleting, setDeleting]       = useState<string | null>(null)
   const [editing, setEditing]         = useState<CalEvent | null>(null)
   const [confirmingDelete, setConfirmingDelete] = useState<CalEvent | null>(null)

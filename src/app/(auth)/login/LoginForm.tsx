@@ -2,17 +2,10 @@
 
 import { useState } from "react"
 import { signIn } from "next-auth/react"
-import { Eye, EyeOff } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Eye, EyeOff, Tv } from "lucide-react"
+import { cn, avatarTextColor } from "@/lib/utils"
 
 type User = { id: string; name: string; role: string; avatarColor: string }
-
-const ROLE_EMOJI: Record<string, string> = {
-  ADMIN: "👨",
-  PARENT: "👩",
-  CHILD: "🧒",
-  KIOSK: "📺",
-}
 
 export function LoginForm({ users }: { users: User[] }) {
   const [selected, setSelected] = useState<User | null>(null)
@@ -69,11 +62,16 @@ export function LoginForm({ users }: { users: User[] }) {
                 : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
             )}
           >
+            {/* Same colored-initial avatar used across the app — one identity system */}
             <div
-              className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm"
-              style={{ backgroundColor: user.avatarColor + "33" }}
+              className={cn(
+                "w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-bold shadow-sm",
+                avatarTextColor(user.avatarColor),
+                user.avatarColor === "#ffffff" && "ring-1 ring-slate-200"
+              )}
+              style={{ backgroundColor: user.avatarColor }}
             >
-              {ROLE_EMOJI[user.role] ?? "👤"}
+              {user.role === "KIOSK" ? <Tv size={22} /> : user.name[0].toUpperCase()}
             </div>
             <span className="font-semibold text-slate-800 text-sm">{user.name}</span>
           </button>

@@ -169,6 +169,21 @@ body {
   --color-red-500: #f87171;
   --color-red-600: #f87171;
   --color-red-700: #f87171;
+
+  /* Amber/star, gold-tier, and celebration tints — used by the dashboard star
+     pill, prize tier headers, chore urgency cards, and "all done" banner.
+     Without these the light defaults bleed through as washed-out beige blocks. */
+  --color-amber-50:  rgba(234, 179, 8, 0.10);
+  --color-amber-200: rgba(234, 179, 8, 0.28);
+  --color-amber-500: #fbbf24;
+  --color-amber-700: #fcd34d;
+  --color-amber-800: #fde68a;
+  --color-yellow-100: rgba(234, 179, 8, 0.18);
+  --color-yellow-700: #fde047;
+  --color-yellow-800: #fef08a;
+  --color-emerald-50:  rgba(34, 197, 94, 0.10);
+  --color-emerald-200: rgba(34, 197, 94, 0.25);
+  --color-emerald-700: #4ade80;
 }
 
 /* Hardcoded class overrides */
@@ -267,29 +282,6 @@ body {
 [data-theme="rose"] .shadow-card    { box-shadow: 0 1px 3px  0 rgba(225,29,72,.05), 0 1px 2px -1px rgba(225,29,72,.03); }
 [data-theme="rose"] .shadow-card-md { box-shadow: 0 2px 8px  0 rgba(225,29,72,.07), 0 1px 3px -1px rgba(225,29,72,.04); }
 [data-theme="rose"] .shadow-card-lg { box-shadow: 0 4px 20px 0 rgba(225,29,72,.09), 0 2px 6px -2px rgba(225,29,72,.05); }
-
-/* Input / select / textarea dark surfaces */
-[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
-[data-theme="dark"] select,
-[data-theme="dark"] textarea {
-  background-color: #27272a;
-  color: #fafafa;
-  border-color: #3f3f46;
-}
-[data-theme="dark"] input::placeholder,
-[data-theme="dark"] textarea::placeholder {
-  color: #52525b;
-}
-
-/* Neon glow on the active nav icon */
-[data-theme="dark"] nav .text-indigo-600 {
-  filter: drop-shadow(0 0 6px oklch(80% 0.20 196));
-}
-
-/* Cards get a subtle dark shadow */
-[data-theme="dark"] .shadow-sm {
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.6);
-}
 
 /* ═══════════════════════════════════════════
    CLASSY THEME — cream base, pink accent, elegant spacing
@@ -398,6 +390,19 @@ body {
   --color-red-500: #f87171;
   --color-red-600: #f87171;
   --color-red-700: #f87171;
+
+  /* Amber/star, gold-tier, and celebration tints (see dark theme note) */
+  --color-amber-50:  rgba(245, 197, 24, 0.10);
+  --color-amber-200: rgba(245, 197, 24, 0.28);
+  --color-amber-500: #fbbf24;
+  --color-amber-700: #fcd34d;
+  --color-amber-800: #fde68a;
+  --color-yellow-100: rgba(245, 197, 24, 0.18);
+  --color-yellow-700: #fde047;
+  --color-yellow-800: #fef08a;
+  --color-emerald-50:  rgba(52, 211, 153, 0.10);
+  --color-emerald-200: rgba(52, 211, 153, 0.25);
+  --color-emerald-700: #34d399;
 }
 
 [data-theme="midnight"] .bg-white    { background-color: #192336; }
@@ -495,6 +500,19 @@ body {
   --color-red-500: #f87171;
   --color-red-600: #f87171;
   --color-red-700: #f87171;
+
+  /* Amber/star, gold-tier, and celebration tints (see dark theme note) */
+  --color-amber-50:  rgba(234, 179, 8, 0.10);
+  --color-amber-200: rgba(234, 179, 8, 0.28);
+  --color-amber-500: #fcd34d;
+  --color-amber-700: #fcd34d;
+  --color-amber-800: #fde68a;
+  --color-yellow-100: rgba(234, 179, 8, 0.18);
+  --color-yellow-700: #fde047;
+  --color-yellow-800: #fef08a;
+  --color-emerald-50:  rgba(52, 211, 153, 0.10);
+  --color-emerald-200: rgba(52, 211, 153, 0.25);
+  --color-emerald-700: #6ee7b7;
 }
 
 [data-theme="aurora"] .bg-white    { background-color: #15142e; }

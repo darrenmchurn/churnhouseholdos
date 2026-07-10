@@ -1,8 +1,9 @@
 export const dynamic = "force-dynamic"
 
-import { auth } from "@/lib/auth"
+import { auth, signOut } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
+import { LogOut } from "lucide-react"
 import { ProfileForm } from "./ProfileForm"
 import { ROLE_LABELS, ROLE_COLORS, avatarTextColor } from "@/lib/utils"
 
@@ -53,6 +54,23 @@ export default async function ProfilePage() {
           weightGoalLbs: user.weightGoalLbs    ?? null,
         }}
       />
+
+      {/* Sign out — lives here so the dashboard header stays uncluttered */}
+      <form
+        className="mt-6"
+        action={async () => {
+          "use server"
+          await signOut({ redirectTo: "/login" })
+        }}
+      >
+        <button
+          type="submit"
+          className="w-full h-12 rounded-2xl bg-white border border-slate-200 shadow-card text-red-500 text-sm font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+        >
+          <LogOut size={16} />
+          Sign Out
+        </button>
+      </form>
     </div>
   )
 }

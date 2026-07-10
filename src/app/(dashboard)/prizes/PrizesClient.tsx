@@ -285,14 +285,14 @@ export function PrizesClient({
           <div className="flex gap-1">
             {TIER_MILESTONES.map((m, i) => (
               <div key={m.label} className="flex-1 space-y-1">
-                <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                <div className="h-2.5 rounded-full bg-slate-200/70 overflow-hidden">
                   <div
                     className={cn("h-full rounded-full transition-all duration-500", m.barColor)}
                     style={{ width: `${progress.segPct[i]}%` }}
                   />
                 </div>
                 <div className="flex justify-end pr-0.5">
-                  <span className="text-[9px] text-slate-400">{m.emoji} {m.pts}⭐</span>
+                  <span className="text-[9px] text-slate-400">{m.emoji} {m.pts}</span>
                 </div>
               </div>
             ))}
@@ -301,8 +301,8 @@ export function PrizesClient({
           {/* Next milestone text */}
           {progress.next ? (
             <p className="text-xs text-slate-500 mt-1">
-              <span className="font-semibold text-slate-700">{progress.needed} more ⭐</span>
-              {" "}to unlock {progress.next.emoji} {progress.next.label} rewards
+              <span className="font-semibold text-slate-700">{progress.needed} more stars</span>
+              {" "}to unlock {progress.next.label} rewards
             </p>
           ) : (
             <p className="text-xs font-semibold text-yellow-700 mt-1">🥇 Max tier reached!</p>
@@ -342,30 +342,22 @@ export function PrizesClient({
             </div>
           )}
 
-          {/* Seed / add missing defaults — always visible to admins */}
-          {isAdmin && (
+          {/* Seed defaults — a proper empty state when the store is empty;
+              once prizes exist it shrinks to a quiet link at the bottom */}
+          {isAdmin && prizes.length === 0 && (
             <div className="bg-indigo-50/70 border border-indigo-100 rounded-2xl p-4 space-y-2.5">
               <div>
-                <p className="text-sm font-semibold text-indigo-900">
-                  {prizes.length === 0 ? "No prizes yet" : "Add missing defaults"}
-                </p>
+                <p className="text-sm font-semibold text-indigo-900">No prizes yet</p>
                 <p className="text-xs text-indigo-600 mt-0.5">
-                  {prizes.length === 0
-                    ? "Load the full starter set across all three tiers."
-                    : "Adds any default prizes not already in your list. Existing prizes are untouched."}
+                  Load the starter set — 22 prizes across Bronze, Silver, and Gold tiers.
                 </p>
-                <div className="text-xs text-indigo-500 mt-1.5 space-y-0.5">
-                  <p>🥉 Bronze (25 ⭐) · 8 prizes</p>
-                  <p>🥈 Silver (75 ⭐) · 7 prizes</p>
-                  <p>🥇 Gold (200 ⭐) · 7 prizes</p>
-                </div>
               </div>
               <button
                 onClick={seedDefaults}
                 disabled={seeding}
                 className="h-9 px-5 rounded-xl bg-indigo-600 text-white text-sm font-semibold disabled:opacity-50"
               >
-                {seeding ? "Adding…" : prizes.length === 0 ? "Load Default Prizes" : "Add Missing Defaults"}
+                {seeding ? "Adding…" : "Load Default Prizes"}
               </button>
             </div>
           )}
@@ -390,10 +382,11 @@ export function PrizesClient({
                 <div className={cn("rounded-xl px-4 py-2.5 flex items-center gap-2", bucket.sectionBg)}>
                   <span className="text-lg">{bucket.emoji}</span>
                   <span className={cn("font-bold text-sm", bucket.headerText)}>{bucket.label} Tier</span>
-                  <span className={cn("ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-full", bucket.tagBg, bucket.tagText)}>
+                  <span className={cn("ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-full inline-flex items-center gap-1", bucket.tagBg, bucket.tagText)}>
+                    <Star size={9} fill="currentColor" />
                     {bucketPrizes[0].pointCost === bucketPrizes.at(-1)?.pointCost
-                      ? `${bucketPrizes[0].pointCost} ⭐`
-                      : `${bucketPrizes[0].pointCost}–${bucketPrizes.at(-1)?.pointCost} ⭐`}
+                      ? bucketPrizes[0].pointCost
+                      : `${bucketPrizes[0].pointCost}–${bucketPrizes.at(-1)?.pointCost}`}
                   </span>
                 </div>
 
@@ -418,10 +411,10 @@ export function PrizesClient({
                         )}
                         <div className="flex items-center gap-1 mt-1">
                           <Star size={11} className="text-amber-500" fill="currentColor" />
-                          <span className="text-xs font-bold text-amber-600">{prize.pointCost} ⭐</span>
+                          <span className="text-xs font-bold text-amber-600">{prize.pointCost}</span>
                           {!canAfford && (
                             <span className="text-xs text-slate-400 ml-1">
-                              · need {prize.pointCost - balance} more ⭐
+                              · need {prize.pointCost - balance} more
                             </span>
                           )}
                         </div>
@@ -437,7 +430,7 @@ export function PrizesClient({
                             "h-9 px-4 rounded-xl text-sm font-semibold transition-all",
                             canAfford
                               ? "bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95"
-                              : "bg-slate-100 text-slate-400 cursor-not-allowed"
+                              : "bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed"
                           )}
                         >
                           {isRedeeming ? "…" : canAfford ? "Redeem" : "Locked"}
@@ -467,6 +460,17 @@ export function PrizesClient({
               </div>
             )
           })}
+
+          {/* Quiet admin utility — replaces the old always-visible defaults panel */}
+          {isAdmin && prizes.length > 0 && (
+            <button
+              onClick={seedDefaults}
+              disabled={seeding}
+              className="w-full py-2 text-center text-xs text-slate-400 hover:text-indigo-500 transition-colors disabled:opacity-50"
+            >
+              {seeding ? "Adding missing defaults…" : "Restore missing default prizes"}
+            </button>
+          )}
         </div>
       )}
 
@@ -530,7 +534,7 @@ export function PrizesClient({
                     <>
                       <span className="text-slate-300 text-[10px]">·</span>
                       <span className="text-[10px] text-emerald-600 font-medium">
-                        +{u.earnedMonth} ⭐ {MONTH_NAME}
+                        +{u.earnedMonth} in {MONTH_NAME}
                       </span>
                     </>
                   )}
@@ -538,7 +542,7 @@ export function PrizesClient({
                     <>
                       <span className="text-slate-300 text-[10px]">·</span>
                       <span className="text-[10px] text-slate-400">
-                        {u.totalSpent} ⭐ spent
+                        {u.totalSpent} spent
                       </span>
                     </>
                   )}
@@ -584,7 +588,7 @@ export function PrizesClient({
                 </p>
                 <div className="flex items-center gap-1 mt-0.5">
                   <Star size={10} className="text-amber-500" fill="currentColor" />
-                  <span className="text-xs text-amber-600 font-medium">{r.pointsSpent} ⭐</span>
+                  <span className="text-xs text-amber-600 font-medium">{r.pointsSpent}</span>
                   <span className="text-xs text-slate-400">· {relTime(r.createdAt)}</span>
                 </div>
               </div>
@@ -597,7 +601,7 @@ export function PrizesClient({
       <ConfirmSheet
         open={!!confirmingRedeem}
         title={confirmingRedeem ? `Redeem ${confirmingRedeem.emoji} ${confirmingRedeem.title}?` : ""}
-        message={confirmingRedeem ? `This will spend ${confirmingRedeem.pointCost} ⭐ of your ${balance} ⭐.` : undefined}
+        message={confirmingRedeem ? `This will spend ${confirmingRedeem.pointCost} of your ${balance} stars.` : undefined}
         confirmLabel="Redeem"
         tone="primary"
         busy={!!redeeming}
@@ -650,7 +654,7 @@ export function PrizesClient({
               className="w-full h-11 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <p className="text-[11px] text-slate-400 mt-1">
-              1–50 ⭐ = 🥉 Bronze · 51–150 ⭐ = 🥈 Silver · 151+ ⭐ = 🥇 Gold
+              1–50 stars = Bronze · 51–150 = Silver · 151+ = Gold
             </p>
           </div>
           <div>
@@ -706,7 +710,7 @@ export function PrizesClient({
               className="w-full h-11 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <p className="text-[11px] text-slate-400 mt-1">
-              1–50 ⭐ = 🥉 Bronze · 51–150 ⭐ = 🥈 Silver · 151+ ⭐ = 🥇 Gold
+              1–50 stars = Bronze · 51–150 = Silver · 151+ = Gold
             </p>
           </div>
           <div>
