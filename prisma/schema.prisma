@@ -202,6 +202,8 @@ model FoodLog {
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date]) // single-day + range lookups by user
 }
 
 // Saved food library — one entry per food the user has ever logged.
@@ -215,6 +217,7 @@ model FoodItem {
   carbsGPer   Float    @default(0)
   fatGPer     Float    @default(0)
   unit        String   @default("serving")
+  isFavorite  Boolean  @default(false)
   lastUsedAt  DateTime @default(now())
   createdAt   DateTime @default(now())
 

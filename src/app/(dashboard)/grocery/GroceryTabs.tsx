@@ -55,6 +55,7 @@ type SavedFood = {
   carbsGPer: number
   fatGPer: number
   unit: string
+  isFavorite: boolean
 }
 
 type Tab = "grocery" | "meals" | "nutrition"

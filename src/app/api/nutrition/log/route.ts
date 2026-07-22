@@ -8,11 +8,23 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url)
   const date = searchParams.get("date")
-  if (!date) return NextResponse.json({ error: "date param required" }, { status: 400 })
+  const from = searchParams.get("from")
+  const to   = searchParams.get("to")
+
+  // Single-day mode (?date=) or inclusive range mode (?from=&to=).
+  // `date` is a "YYYY-MM-DD" string, so lexicographic gte/lte is chronological.
+  let where
+  if (date) {
+    where = { userId: session.user.id, date }
+  } else if (from && to) {
+    where = { userId: session.user.id, date: { gte: from, lte: to } }
+  } else {
+    return NextResponse.json({ error: "date, or from+to, param required" }, { status: 400 })
+  }
 
   const entries = await prisma.foodLog.findMany({
-    where: { userId: session.user.id, date },
-    orderBy: { createdAt: "asc" },
+    where,
+    orderBy: [{ date: "asc" }, { createdAt: "asc" }],
   })
 
   return NextResponse.json(entries)

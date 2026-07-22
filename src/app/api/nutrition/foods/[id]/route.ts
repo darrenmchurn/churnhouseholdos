@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
-// PATCH — bump lastUsedAt when an existing food is re-logged
+// PATCH — with an empty body, bumps lastUsedAt (called when a food is re-logged).
+// With a body, edits the saved food: name / macros / unit / favorite flag.
 export async function PATCH(
-  _req: NextRequest,
+  req: NextRequest,
   props: { params: Promise<{ id: string }> }
 ) {
   const session = await auth()
@@ -17,11 +18,21 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  const updated = await prisma.foodItem.update({
-    where: { id },
-    data: { lastUsedAt: new Date() },
-  })
+  // Body is optional — the re-log bump sends none
+  const body = await req.json().catch(() => ({}))
+  const data: Record<string, unknown> = {}
 
+  if (typeof body.name === "string" && body.name.trim()) data.name = body.name.trim()
+  if (typeof body.unit === "string" && body.unit.trim()) data.unit = body.unit.trim()
+  if (typeof body.isFavorite === "boolean") data.isFavorite = body.isFavorite
+  for (const k of ["caloriesPer", "proteinGPer", "carbsGPer", "fatGPer"] as const) {
+    if (body[k] != null) data[k] = Number(body[k]) || 0
+  }
+
+  // No editable fields provided → treat as a "used it again" bump
+  if (Object.keys(data).length === 0) data.lastUsedAt = new Date()
+
+  const updated = await prisma.foodItem.update({ where: { id }, data })
   return NextResponse.json(updated)
 }
 

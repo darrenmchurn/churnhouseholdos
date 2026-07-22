@@ -9,7 +9,7 @@ export async function GET() {
 
   const foods = await prisma.foodItem.findMany({
     where: { userId: session.user.id },
-    orderBy: { lastUsedAt: "desc" },
+    orderBy: [{ isFavorite: "desc" }, { lastUsedAt: "desc" }],
   })
 
   return NextResponse.json(foods)
@@ -58,10 +58,22 @@ export async function POST(req: NextRequest) {
       })
     }
   } else {
-    // Manual entry — always create new
-    item = await prisma.foodItem.create({
-      data: { ...data, userId: session.user.id },
+    // Manual entry — dedupe on case-insensitive name so repeat logs don't pile
+    // up in "My Foods" (previously every manual log created a duplicate entry)
+    const existing = await prisma.foodItem.findFirst({
+      where: {
+        userId:  session.user.id,
+        barcode: null,
+        name:    { equals: data.name, mode: "insensitive" },
+      },
     })
+    if (existing) {
+      item = await prisma.foodItem.update({ where: { id: existing.id }, data })
+    } else {
+      item = await prisma.foodItem.create({
+        data: { ...data, userId: session.user.id },
+      })
+    }
   }
 
   return NextResponse.json(item, { status: 201 })

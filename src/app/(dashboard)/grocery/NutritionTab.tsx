@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import Link from "next/link"
 import {
-  ChevronLeft, ChevronRight, Plus, X, Trash2,
+  ChevronLeft, ChevronRight, Plus, Minus, X, Trash2,
   Camera, Pencil, Flame, Scale, BookOpen, ArrowLeft, Search,
+  Repeat, Check, TrendingUp, Star,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -39,6 +40,12 @@ export type FoodItem = {
   carbsGPer: number
   fatGPer: number
   unit: string
+  isFavorite: boolean
+}
+
+// Sort favorites first, then most-recently-used (matches the server orderBy)
+function sortFoods(foods: FoodItem[]): FoodItem[] {
+  return [...foods].sort((a, b) => Number(b.isFavorite) - Number(a.isFavorite))
 }
 
 type Goals = {
@@ -50,6 +57,18 @@ type Goals = {
 }
 
 type MealSection = "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK"
+
+// A per-unit food derived from history, used for one-tap quick-add
+type QuickFood = {
+  name: string
+  unit: string
+  caloriesPer: number
+  proteinGPer: number
+  carbsGPer: number
+  fatGPer: number
+  count: number
+  lastDate: string
+}
 
 const MEAL_SECTIONS: MealSection[] = ["BREAKFAST", "LUNCH", "DINNER", "SNACK"]
 const MEAL_LABEL: Record<MealSection, string> = {
@@ -77,6 +96,90 @@ function formatDateLabel(dateStr: string): string {
   if (dateStr === todayStr()) return "Today"
   if (dateStr === addDays(todayStr(), -1)) return "Yesterday"
   return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago" })
+}
+
+function weekdayLetter(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "narrow" })
+}
+
+// ─── Derivations from history ─────────────────────────────────────────────────
+
+// Longest run of consecutive logged days ending today (or yesterday, so the
+// streak isn't shown as "broken" before you've logged anything today).
+function computeStreak(loggedDates: Set<string>, today: string): number {
+  let cursor = today
+  if (!loggedDates.has(cursor)) cursor = addDays(cursor, -1)
+  let streak = 0
+  while (loggedDates.has(cursor)) {
+    streak++
+    cursor = addDays(cursor, -1)
+  }
+  return streak
+}
+
+// Most-logged foods for a given meal, with per-unit macros recovered from the
+// stored totals (total ÷ quantity). Powers the one-tap quick-add chips.
+function frequentFoodsForMeal(
+  history: FoodEntry[],
+  mealType: MealSection,
+  exclude: Set<string>,
+  limit = 4,
+): QuickFood[] {
+  const map = new Map<string, QuickFood>()
+  for (const e of history) {
+    if (e.mealType !== mealType) continue
+    const key = e.name.toLowerCase()
+    if (exclude.has(key)) continue
+    const q = e.quantity || 1
+    const existing = map.get(key)
+    if (existing) {
+      existing.count++
+      if (e.date > existing.lastDate) {
+        existing.lastDate    = e.date
+        existing.name        = e.name
+        existing.unit        = e.unit
+        existing.caloriesPer = e.calories / q
+        existing.proteinGPer = e.proteinG / q
+        existing.carbsGPer   = e.carbsG / q
+        existing.fatGPer     = e.fatG / q
+      }
+    } else {
+      map.set(key, {
+        name: e.name, unit: e.unit,
+        caloriesPer: e.calories / q, proteinGPer: e.proteinG / q,
+        carbsGPer: e.carbsG / q, fatGPer: e.fatG / q,
+        count: 1, lastDate: e.date,
+      })
+    }
+  }
+  return [...map.values()]
+    .sort((a, b) => b.count - a.count || b.lastDate.localeCompare(a.lastDate))
+    .slice(0, limit)
+}
+
+// Recent days that have entries for this meal — the "repeat a meal" bundles.
+type MealBundle = { date: string; items: FoodEntry[]; calories: number }
+function recentMealBundles(
+  history: FoodEntry[],
+  mealType: MealSection,
+  excludeDate: string,
+  limit = 5,
+): MealBundle[] {
+  const byDate = new Map<string, FoodEntry[]>()
+  for (const e of history) {
+    if (e.mealType !== mealType || e.date === excludeDate) continue
+    const arr = byDate.get(e.date) ?? []
+    arr.push(e)
+    byDate.set(e.date, arr)
+  }
+  return [...byDate.entries()]
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .slice(0, limit)
+    .map(([date, items]) => ({
+      date, items,
+      calories: Math.round(items.reduce((s, e) => s + e.calories, 0)),
+    }))
 }
 
 // ─── Accessible progress bar ─────────────────────────────────────────────────
@@ -138,6 +241,7 @@ function MacroRow({
   goal: number | null
   barColor: string
 }) {
+  const met = goal ? value >= goal : false
   return (
     <div className="flex items-center gap-2">
       {/* Visually abbreviated, full label for screen readers */}
@@ -150,9 +254,194 @@ function MacroRow({
       </div>
       <span className="text-xs text-slate-500 flex-shrink-0 text-right w-20">
         <span aria-hidden="true">
+          {met && <span className="text-green-500">✓ </span>}
           {Math.round(value)}{goal ? `/${goal}g` : "g"}
         </span>
       </span>
+    </div>
+  )
+}
+
+// ─── Quantity stepper ─────────────────────────────────────────────────────────
+
+function QtyStepper({
+  value,
+  onChange,
+  id,
+  accent = "slate",
+}: {
+  value: string
+  onChange: (v: string) => void
+  id?: string
+  accent?: "slate" | "indigo"
+}) {
+  const num = Number(value) || 0
+  const bump = (delta: number) => {
+    const next = Math.max(0.1, Math.round((num + delta) * 10) / 10)
+    onChange(String(next))
+  }
+  const border = accent === "indigo" ? "border-indigo-200" : "border-slate-200"
+  return (
+    <div className="flex items-center gap-1.5">
+      <button
+        type="button"
+        onClick={() => bump(-0.5)}
+        disabled={num <= 0.1}
+        className={cn("w-9 h-9 rounded-xl border flex items-center justify-center text-slate-500 hover:bg-slate-100 disabled:opacity-30 transition-colors", border)}
+        aria-label="Decrease quantity by 0.5"
+      >
+        <Minus size={15} aria-hidden="true" />
+      </button>
+      <input
+        id={id}
+        type="number"
+        min="0.1"
+        step="0.1"
+        inputMode="decimal"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={cn("w-16 h-9 px-2 rounded-xl border text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-500", border)}
+        aria-label="Quantity"
+      />
+      <button
+        type="button"
+        onClick={() => bump(0.5)}
+        className={cn("w-9 h-9 rounded-xl border flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors", border)}
+        aria-label="Increase quantity by 0.5"
+      >
+        <Plus size={15} aria-hidden="true" />
+      </button>
+    </div>
+  )
+}
+
+// ─── Calorie ring ─────────────────────────────────────────────────────────────
+
+function CalorieRing({ consumed, goal }: { consumed: number; goal: number | null }) {
+  const SIZE = 116
+  const STROKE = 11
+  const R = (SIZE - STROKE) / 2
+  const C = 2 * Math.PI * R
+
+  const pct = goal ? Math.min(consumed / goal, 1) : 0
+  const remaining = goal ? Math.round(goal - consumed) : null
+  const over = remaining !== null && remaining < 0
+  const reached = remaining !== null && remaining <= 0
+
+  // orange while filling, green at/under goal, red when over
+  const ringColor = over ? "#ef4444" : reached ? "#22c55e" : "#fb923c"
+
+  const bigText = goal
+    ? over ? String(Math.abs(remaining!)) : String(remaining)
+    : Math.round(consumed).toLocaleString()
+  const smallText = goal ? (over ? "over" : "kcal left") : "kcal"
+
+  return (
+    <div className="relative flex-shrink-0" style={{ width: SIZE, height: SIZE }}>
+      <svg width={SIZE} height={SIZE} className="-rotate-90" aria-hidden="true">
+        <circle cx={SIZE / 2} cy={SIZE / 2} r={R} fill="none" stroke="#e2e8f0" strokeWidth={STROKE} />
+        {goal && (
+          <circle
+            cx={SIZE / 2} cy={SIZE / 2} r={R}
+            fill="none" stroke={ringColor} strokeWidth={STROKE} strokeLinecap="round"
+            strokeDasharray={C}
+            strokeDashoffset={C * (1 - pct)}
+            style={{ transition: "stroke-dashoffset .5s ease, stroke .3s ease" }}
+          />
+        )}
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-2xl font-bold text-slate-900 leading-none tabular-nums">{bigText}</span>
+        <span className="text-[11px] text-slate-400 mt-0.5">{smallText}</span>
+      </div>
+      <span className="sr-only">
+        {goal
+          ? `${Math.round(consumed)} of ${goal} calories, ${over ? `${Math.abs(remaining!)} over` : `${remaining} remaining`}`
+          : `${Math.round(consumed)} calories`}
+      </span>
+    </div>
+  )
+}
+
+// ─── Weekly trend + streak card ───────────────────────────────────────────────
+
+function WeekTrendCard({
+  history,
+  today,
+  calorieGoal,
+}: {
+  history: FoodEntry[]
+  today: string
+  calorieGoal: number | null
+}) {
+  const loggedDates = useMemo(() => new Set(history.map((e) => e.date)), [history])
+  const streak = computeStreak(loggedDates, today)
+
+  // Last 7 days of calorie totals
+  const days = useMemo(() => {
+    const totals = new Map<string, number>()
+    for (const e of history) totals.set(e.date, (totals.get(e.date) ?? 0) + e.calories)
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = addDays(today, -(6 - i))
+      return { date: d, cals: Math.round(totals.get(d) ?? 0) }
+    })
+  }, [history, today])
+
+  const maxCal = Math.max(...days.map((d) => d.cals), calorieGoal ?? 0, 1)
+  const loggedCount = days.filter((d) => d.cals > 0).length
+
+  return (
+    <div className="bg-white rounded-2xl shadow-card-md px-4 py-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <TrendingUp size={16} className="text-indigo-500" aria-hidden="true" />
+          <h3 className="text-sm font-semibold text-slate-800">This week</h3>
+        </div>
+        <div
+          className={cn(
+            "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold",
+            streak > 0 ? "bg-orange-100 text-orange-600" : "bg-slate-100 text-slate-400",
+          )}
+          aria-label={streak > 0 ? `${streak} day logging streak` : "No active streak"}
+        >
+          <span aria-hidden="true">🔥</span>
+          {streak > 0 ? `${streak}-day streak` : "Start a streak"}
+        </div>
+      </div>
+
+      {/* Bar chart */}
+      <div className="flex items-end justify-between gap-1.5 h-24" aria-hidden="true">
+        {days.map((d) => {
+          const h = maxCal ? (d.cals / maxCal) * 100 : 0
+          const isToday = d.date === today
+          const over = calorieGoal ? d.cals > calorieGoal : false
+          return (
+            <div key={d.date} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+              <div className="w-full flex-1 flex items-end">
+                <div
+                  className={cn(
+                    "w-full rounded-md transition-all duration-500",
+                    d.cals === 0
+                      ? "bg-slate-100"
+                      : over
+                        ? "bg-red-400"
+                        : isToday ? "bg-indigo-500" : "bg-orange-300",
+                  )}
+                  style={{ height: `${Math.max(h, d.cals > 0 ? 6 : 3)}%` }}
+                />
+              </div>
+              <span className={cn("text-[10px]", isToday ? "text-indigo-600 font-semibold" : "text-slate-400")}>
+                {weekdayLetter(d.date)}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+
+      <p className="text-xs text-slate-400 text-center">
+        Logged <span className="font-semibold text-slate-600">{loggedCount}/7</span> days this week
+        {calorieGoal ? " · goal line varies by bar color" : ""}
+      </p>
     </div>
   )
 }
@@ -407,6 +696,42 @@ function WeightCard({
   )
 }
 
+// ─── Quick-add chips (one-tap re-log on a meal card) ──────────────────────────
+
+function QuickAddChips({
+  foods,
+  onPick,
+  busyName,
+}: {
+  foods: QuickFood[]
+  onPick: (food: QuickFood) => void
+  busyName: string | null
+}) {
+  if (foods.length === 0) return null
+  return (
+    <div className="flex gap-1.5 overflow-x-auto overscroll-x-contain -mx-1 px-1 pb-0.5 pt-1 no-scrollbar">
+      {foods.map((f) => {
+        const busy = busyName === f.name
+        return (
+          <button
+            key={f.name}
+            onClick={() => onPick(f)}
+            disabled={busy}
+            className="flex items-center gap-1 flex-shrink-0 bg-slate-50 hover:bg-indigo-50 active:bg-indigo-100 border border-slate-200 hover:border-indigo-200 rounded-full pl-2.5 pr-3 py-1 transition-colors disabled:opacity-60"
+            aria-label={`Quick add ${f.name}, ${Math.round(f.caloriesPer)} calories`}
+          >
+            {busy
+              ? <Check size={13} className="text-green-500 flex-shrink-0" aria-hidden="true" />
+              : <Plus size={13} className="text-indigo-500 flex-shrink-0" aria-hidden="true" />}
+            <span className="text-xs font-medium text-slate-700 whitespace-nowrap max-w-[9rem] truncate">{f.name}</span>
+            <span className="text-[10px] text-slate-400 whitespace-nowrap">{Math.round(f.caloriesPer)}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function NutritionTab({
@@ -422,14 +747,20 @@ export function NutritionTab({
 }) {
   const [date, setDate] = useState(todayStr)
   const [log, setLog] = useState<FoodEntry[]>(initialLog)
+  const [history, setHistory] = useState<FoodEntry[]>(initialLog)
   const [loading, setLoading] = useState(false)
   const [addingFor, setAddingFor] = useState<MealSection | null>(null)
+  const [editingEntry, setEditingEntry] = useState<FoodEntry | null>(null)
   const [savedFoods, setSavedFoods] = useState<FoodItem[]>(initialFoods)
+  const [quickBusy, setQuickBusy] = useState<string | null>(null)
+
+  const isToday = date === todayStr()
+  const windowStart = () => addDays(todayStr(), -29)
 
   function handleFoodSaved(food: FoodItem) {
     setSavedFoods((prev) => {
       const without = prev.filter((f) => f.id !== food.id)
-      return [food, ...without] // most recently used at top
+      return sortFoods([food, ...without]) // recent at top, favorites floated up
     })
   }
 
@@ -437,7 +768,40 @@ export function NutritionTab({
     setSavedFoods((prev) => prev.filter((f) => f.id !== id))
   }
 
-  const isToday = date === todayStr()
+  // ── Local log/history mutation helpers (keep both stores in sync) ──
+  const addLocal = useCallback((entries: FoodEntry[], viewedDate: string) => {
+    const start = windowStart()
+    setLog((prev) => [...prev, ...entries.filter((e) => e.date === viewedDate)])
+    setHistory((prev) => [...prev, ...entries.filter((e) => e.date >= start)])
+  }, [])
+
+  const replaceLocal = useCallback((tempId: string, real: FoodEntry) => {
+    const swap = (arr: FoodEntry[]) => arr.map((e) => (e.id === tempId ? real : e))
+    setLog(swap)
+    setHistory(swap)
+  }, [])
+
+  const removeLocal = useCallback((id: string) => {
+    setLog((prev) => prev.filter((e) => e.id !== id))
+    setHistory((prev) => prev.filter((e) => e.id !== id))
+  }, [])
+
+  // Load a 30-day history window once for streak / trend / repeat / quick-add
+  useEffect(() => {
+    const to = todayStr()
+    const from = addDays(to, -29)
+    fetch(`/api/nutrition/log?from=${from}&to=${to}`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((rows: FoodEntry[]) => {
+        setHistory((prev) => {
+          const byId = new Map(rows.map((e) => [e.id, e]))
+          // preserve any optimistic entries not yet reflected server-side
+          for (const e of prev) if (!byId.has(e.id)) byId.set(e.id, e)
+          return [...byId.values()]
+        })
+      })
+      .catch(() => { /* streak/trend just stay based on today */ })
+  }, [])
 
   const loadDay = useCallback(async (d: string) => {
     setLoading(true)
@@ -451,16 +815,62 @@ export function NutritionTab({
 
   useEffect(() => {
     if (date !== todayStr()) loadDay(date)
+    else setLog((prev) => prev) // viewing today keeps the live log
   }, [date, loadDay])
 
   async function deleteEntry(id: string) {
-    setLog((prev) => prev.filter((e) => e.id !== id))
+    removeLocal(id)
     await fetch(`/api/nutrition/log/${id}`, { method: "DELETE" })
   }
 
+  function onEntrySaved(updated: FoodEntry) {
+    const swap = (arr: FoodEntry[]) => arr.map((e) => (e.id === updated.id ? updated : e))
+    setLog(swap)
+    setHistory(swap)
+  }
+
   function onAdded(entry: FoodEntry) {
-    setLog((prev) => [...prev, entry])
+    addLocal([entry], date)
     setAddingFor(null)
+  }
+
+  function onAddedMany(entries: FoodEntry[]) {
+    addLocal(entries, date)
+    setAddingFor(null)
+  }
+
+  // Commit without closing the sheet — powers the fast one-tap "+" multi-add
+  function onAddedStay(entries: FoodEntry[]) {
+    addLocal(entries, date)
+  }
+
+  // One-tap quick-add from a meal card (optimistic)
+  async function quickAdd(section: MealSection, food: QuickFood) {
+    const tempId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    const optimistic: FoodEntry = {
+      id: tempId, date, mealType: section, name: food.name,
+      calories: food.caloriesPer, proteinG: food.proteinGPer,
+      carbsG: food.carbsGPer, fatG: food.fatGPer, quantity: 1, unit: food.unit,
+    }
+    addLocal([optimistic], date)
+    setQuickBusy(food.name)
+    try {
+      const res = await fetch("/api/nutrition/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date, mealType: section, name: food.name,
+          calories: food.caloriesPer, proteinG: food.proteinGPer,
+          carbsG: food.carbsGPer, fatG: food.fatGPer, quantity: 1, unit: food.unit,
+        }),
+      })
+      if (res.ok) replaceLocal(tempId, await res.json())
+      else removeLocal(tempId)
+    } catch {
+      removeLocal(tempId)
+    } finally {
+      setTimeout(() => setQuickBusy((n) => (n === food.name ? null : n)), 900)
+    }
   }
 
   const totals = log.reduce(
@@ -473,7 +883,7 @@ export function NutritionTab({
     { calories: 0, protein: 0, carbs: 0, fat: 0 }
   )
 
-  const calOver = goals.calories ? totals.calories > goals.calories : false
+  const calGoalReached = goals.calories ? totals.calories > 0 && totals.calories <= goals.calories : false
 
   return (
     <div className="space-y-4">
@@ -500,56 +910,45 @@ export function NutritionTab({
         </button>
       </div>
 
-      {/* Daily summary card */}
-      <div className="bg-white rounded-2xl shadow-card-md px-4 py-4 space-y-3">
-        <h2 className="text-sm font-semibold text-slate-700 sr-only">Daily nutrition summary</h2>
+      {/* Daily summary card — calorie ring + macros */}
+      <div className="bg-white rounded-2xl shadow-card-md px-4 py-4">
+        <h2 className="sr-only">Daily nutrition summary</h2>
+        <div className="flex items-center gap-4">
+          <CalorieRing consumed={totals.calories} goal={goals.calories} />
 
-        {/* Calorie row */}
-        <div className="flex items-center gap-3">
-          <div
-            className={cn("w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0", calOver ? "bg-red-100" : "bg-orange-50")}
-            aria-hidden="true"
-          >
-            <Flame size={18} className={calOver ? "text-red-500" : "text-orange-500"} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-baseline justify-between mb-1.5">
-              <span className="text-sm font-semibold text-slate-900">
-                {Math.round(totals.calories).toLocaleString()} kcal
+          <div className="flex-1 min-w-0 space-y-2.5">
+            <div className="flex items-baseline justify-between">
+              <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-900">
+                <Flame size={15} className="text-orange-500" aria-hidden="true" />
+                {Math.round(totals.calories).toLocaleString()}
+                {goals.calories && <span className="text-xs font-normal text-slate-400">/ {goals.calories.toLocaleString()}</span>}
               </span>
-              {goals.calories && (
-                <span className="text-xs text-slate-400" aria-hidden="true">
-                  / {goals.calories.toLocaleString()} goal
-                </span>
-              )}
             </div>
-            <ProgressBar
-              label="Calories"
-              value={totals.calories}
-              goal={goals.calories}
-              barColor="bg-orange-400"
-              height="h-2.5"
-            />
+            <MacroRow label="P" fullLabel="Protein" value={totals.protein} goal={goals.protein} barColor="bg-red-400" />
+            <MacroRow label="C" fullLabel="Carbohydrates" value={totals.carbs} goal={goals.carbs} barColor="bg-yellow-400" />
+            <MacroRow label="F" fullLabel="Fat" value={totals.fat} goal={goals.fat} barColor="bg-purple-400" />
           </div>
         </div>
 
-        {/* Macro rows */}
-        <div className="space-y-2 pt-0.5">
-          <MacroRow label="P" fullLabel="Protein" value={totals.protein} goal={goals.protein} barColor="bg-red-400" />
-          <MacroRow label="C" fullLabel="Carbohydrates" value={totals.carbs} goal={goals.carbs} barColor="bg-yellow-400" />
-          <MacroRow label="F" fullLabel="Fat" value={totals.fat} goal={goals.fat} barColor="bg-purple-400" />
-        </div>
+        {calGoalReached && (
+          <p className="mt-3 text-center text-xs font-semibold text-green-600" aria-live="polite">
+            🎉 Calorie goal reached — nicely done!
+          </p>
+        )}
 
         {!goals.calories && !goals.protein && (
-          <p className="text-xs text-slate-500 text-center pt-1">
+          <p className="text-xs text-slate-500 text-center pt-3">
             Set goals in your{" "}
             <Link href="/profile" className="text-indigo-600 font-medium underline-offset-2 hover:underline">
               Profile
             </Link>{" "}
-            to see progress bars
+            to see progress
           </p>
         )}
       </div>
+
+      {/* Weekly streak + trend */}
+      <WeekTrendCard history={history} today={todayStr()} calorieGoal={goals.calories} />
 
       {/* Weight tracking card */}
       <WeightCard
@@ -568,6 +967,10 @@ export function NutritionTab({
           {MEAL_SECTIONS.map((section) => {
             const items = log.filter((e) => e.mealType === section)
             const sectionCals = Math.round(items.reduce((s, e) => s + e.calories, 0))
+            const loggedNames = new Set(items.map((e) => e.name.toLowerCase()))
+            const quickFoods = isToday
+              ? frequentFoodsForMeal(history, section, loggedNames)
+              : []
             return (
               <section key={section} aria-label={MEAL_LABEL[section]} className="bg-white rounded-2xl shadow-card-md px-4 py-3">
                 <div className="flex items-center justify-between mb-2">
@@ -595,10 +998,19 @@ export function NutritionTab({
                   <ul className="space-y-1.5" aria-label={`${MEAL_LABEL[section]} entries`}>
                     {items.map((entry) => (
                       <li key={entry.id}>
-                        <FoodEntryRow entry={entry} onDelete={deleteEntry} />
+                        <FoodEntryRow entry={entry} onDelete={deleteEntry} onEdit={setEditingEntry} />
                       </li>
                     ))}
                   </ul>
+                )}
+
+                {/* One-tap quick add of your frequent foods for this meal */}
+                {quickFoods.length > 0 && (
+                  <QuickAddChips
+                    foods={quickFoods}
+                    onPick={(f) => quickAdd(section, f)}
+                    busyName={quickBusy}
+                  />
                 )}
               </section>
             )
@@ -612,10 +1024,23 @@ export function NutritionTab({
           date={date}
           mealType={addingFor}
           savedFoods={savedFoods}
+          history={history}
           onAdded={onAdded}
+          onAddedMany={onAddedMany}
+          onAddedStay={onAddedStay}
           onFoodSaved={handleFoodSaved}
           onFoodDeleted={handleFoodDeleted}
           onClose={() => setAddingFor(null)}
+        />
+      )}
+
+      {/* Edit logged entry sheet */}
+      {editingEntry && (
+        <EditEntrySheet
+          entry={editingEntry}
+          onSaved={onEntrySaved}
+          onDeleted={deleteEntry}
+          onClose={() => setEditingEntry(null)}
         />
       )}
     </div>
@@ -624,10 +1049,22 @@ export function NutritionTab({
 
 // ─── FoodEntryRow ─────────────────────────────────────────────────────────────
 
-function FoodEntryRow({ entry, onDelete }: { entry: FoodEntry; onDelete: (id: string) => void }) {
+function FoodEntryRow({
+  entry,
+  onDelete,
+  onEdit,
+}: {
+  entry: FoodEntry
+  onDelete: (id: string) => void
+  onEdit: (entry: FoodEntry) => void
+}) {
   return (
     <div className="flex items-center gap-2 min-h-[2.75rem]">
-      <div className="flex-1 min-w-0 self-center">
+      <button
+        onClick={() => onEdit(entry)}
+        className="flex-1 min-w-0 self-center text-left rounded-lg -mx-1 px-1 py-0.5 hover:bg-slate-50 transition-colors"
+        aria-label={`Edit ${entry.name}`}
+      >
         <p className="text-sm text-slate-800 truncate">{entry.name}</p>
         <p className="text-xs text-slate-500">
           <span aria-label={`${Math.round(entry.calories)} calories`}>{Math.round(entry.calories)} kcal</span>
@@ -639,7 +1076,7 @@ function FoodEntryRow({ entry, onDelete }: { entry: FoodEntry; onDelete: (id: st
           <span aria-label={`${Math.round(entry.fatG)} grams fat`}>F{Math.round(entry.fatG)}g</span>
           {entry.quantity !== 1 && <span aria-label={`quantity ${entry.quantity}`}>{" · "}{entry.quantity}×</span>}
         </p>
-      </div>
+      </button>
       <button
         onClick={() => onDelete(entry.id)}
         className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0 self-center"
@@ -647,6 +1084,125 @@ function FoodEntryRow({ entry, onDelete }: { entry: FoodEntry; onDelete: (id: st
       >
         <Trash2 size={13} aria-hidden="true" />
       </button>
+    </div>
+  )
+}
+
+// ─── EditEntrySheet — tap a logged item to change quantity / meal ─────────────
+
+function EditEntrySheet({
+  entry,
+  onSaved,
+  onDeleted,
+  onClose,
+}: {
+  entry: FoodEntry
+  onSaved: (updated: FoodEntry) => void
+  onDeleted: (id: string) => void
+  onClose: () => void
+}) {
+  const [qty, setQty] = useState(String(entry.quantity))
+  const [mealType, setMealType] = useState<MealSection>(entry.mealType as MealSection)
+  const [saving, setSaving] = useState(false)
+
+  // entry macros are totals for entry.quantity — scale for the preview
+  const ratio = (Number(qty) || entry.quantity) / (entry.quantity || 1)
+  const scaled = (v: number) => Math.round(v * ratio)
+
+  async function save() {
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/nutrition/log/${entry.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quantity: Number(qty) || entry.quantity, mealType }),
+      })
+      if (res.ok) {
+        onSaved(await res.json())
+        onClose()
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex flex-col justify-end"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Edit ${entry.name}`}
+    >
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} aria-hidden="true" />
+      <div
+        className="relative bg-white rounded-t-3xl px-4 pt-4"
+        style={{ paddingBottom: "max(2rem, env(safe-area-inset-bottom))" }}
+      >
+        <div className="w-10 h-1 rounded-full bg-slate-200 mx-auto mb-4" aria-hidden="true" />
+
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-bold text-slate-900 truncate pr-2">{entry.name}</h2>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 flex-shrink-0"
+            aria-label="Close"
+          >
+            <X size={18} aria-hidden="true" />
+          </button>
+        </div>
+
+        {/* Meal picker */}
+        <p className="text-xs font-medium text-slate-600 mb-1.5">Meal</p>
+        <div className="grid grid-cols-4 gap-1.5 mb-4">
+          {MEAL_SECTIONS.map((m) => (
+            <button
+              key={m}
+              onClick={() => setMealType(m)}
+              aria-pressed={mealType === m}
+              className={cn(
+                "h-11 rounded-xl border text-xs font-medium flex flex-col items-center justify-center gap-0.5 transition-colors",
+                mealType === m ? "border-indigo-400 bg-indigo-50 text-indigo-700" : "border-slate-200 text-slate-500",
+              )}
+            >
+              <span aria-hidden="true">{MEAL_ICON[m]}</span>
+              {MEAL_LABEL[m]}
+            </button>
+          ))}
+        </div>
+
+        {/* Quantity */}
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-xs font-medium text-slate-600">Quantity</p>
+            <p className="text-xs text-slate-400">{entry.unit}</p>
+          </div>
+          <QtyStepper value={qty} onChange={setQty} accent="indigo" />
+        </div>
+
+        {/* Preview */}
+        <div className="bg-slate-50 rounded-xl px-3 py-2.5 mb-4" aria-live="polite">
+          <p className="text-xs text-slate-600 font-medium">
+            {scaled(entry.calories)} kcal · P{scaled(entry.proteinG)}g · C{scaled(entry.carbsG)}g · F{scaled(entry.fatG)}g
+          </p>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={() => { onDeleted(entry.id); onClose() }}
+            className="h-11 px-4 rounded-xl border border-slate-200 text-red-500 text-sm font-medium flex items-center gap-1.5"
+            aria-label={`Remove ${entry.name}`}
+          >
+            <Trash2 size={15} aria-hidden="true" /> Remove
+          </button>
+          <button
+            onClick={save}
+            disabled={saving || !(Number(qty) > 0)}
+            className="flex-1 h-11 rounded-xl bg-indigo-600 text-white font-semibold text-sm disabled:opacity-50"
+          >
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -663,13 +1219,16 @@ type BarcodeResult = {
   unit?: string
 }
 
-type SheetView = "choose" | "existing" | "new"
+type SheetView = "choose" | "existing" | "repeat" | "new"
 
 function AddFoodSheet({
   date,
   mealType,
   savedFoods,
+  history,
   onAdded,
+  onAddedMany,
+  onAddedStay,
   onFoodSaved,
   onFoodDeleted,
   onClose,
@@ -677,12 +1236,21 @@ function AddFoodSheet({
   date: string
   mealType: MealSection
   savedFoods: FoodItem[]
+  history: FoodEntry[]
   onAdded: (entry: FoodEntry) => void
+  onAddedMany: (entries: FoodEntry[]) => void
+  onAddedStay: (entries: FoodEntry[]) => void
   onFoodSaved: (food: FoodItem) => void
   onFoodDeleted: (id: string) => void
   onClose: () => void
 }) {
-  const [view, setView] = useState<SheetView>(savedFoods.length > 0 ? "choose" : "new")
+  const bundles = useMemo(
+    () => recentMealBundles(history, mealType, date),
+    [history, mealType, date],
+  )
+  const hasChoose = savedFoods.length > 0 || bundles.length > 0
+
+  const [view, setView] = useState<SheetView>(hasChoose ? "choose" : "new")
   const [tab, setTab] = useState<"scan" | "manual">("scan")
 
   const [name,     setName]     = useState("")
@@ -709,6 +1277,21 @@ function AddFoodSheet({
   const [existingQty,    setExistingQty]    = useState("1")
   const [logginExisting, setLoggingExisting] = useState(false)
   const [deletingFood,   setDeletingFood]   = useState<string | null>(null)
+  const [quickAddedId,   setQuickAddedId]   = useState<string | null>(null)
+  const [favBusy,        setFavBusy]        = useState<string | null>(null)
+
+  // Inline "edit saved food" form state
+  const [editingFoodId, setEditingFoodId] = useState<string | null>(null)
+  const [editName,    setEditName]    = useState("")
+  const [editCal,     setEditCal]     = useState("")
+  const [editProtein, setEditProtein] = useState("")
+  const [editCarbs,   setEditCarbs]   = useState("")
+  const [editFat,     setEditFat]     = useState("")
+  const [editUnit,    setEditUnit]    = useState("serving")
+  const [savingEdit,  setSavingEdit]  = useState(false)
+
+  // "Repeat" view state
+  const [copyingDate, setCopyingDate] = useState<string | null>(null)
 
   // Silent save to food library after every log
   async function saveToLibrary(data: {
@@ -737,34 +1320,118 @@ function AddFoodSheet({
     }
   }
 
+  async function toggleFavorite(food: FoodItem) {
+    setFavBusy(food.id)
+    try {
+      const res = await fetch(`/api/nutrition/foods/${food.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isFavorite: !food.isFavorite }),
+      })
+      if (res.ok) onFoodSaved(await res.json())
+    } finally {
+      setFavBusy(null)
+    }
+  }
+
+  function startEditFood(food: FoodItem) {
+    setEditingFoodId(food.id)
+    setEditName(food.name)
+    setEditCal(String(food.caloriesPer))
+    setEditProtein(String(food.proteinGPer))
+    setEditCarbs(String(food.carbsGPer))
+    setEditFat(String(food.fatGPer))
+    setEditUnit(food.unit)
+  }
+
+  async function saveEditedFood(food: FoodItem) {
+    if (!editName.trim()) return
+    setSavingEdit(true)
+    try {
+      const res = await fetch(`/api/nutrition/foods/${food.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name:        editName.trim(),
+          caloriesPer: Number(editCal)     || 0,
+          proteinGPer: Number(editProtein) || 0,
+          carbsGPer:   Number(editCarbs)   || 0,
+          fatGPer:     Number(editFat)     || 0,
+          unit:        editUnit.trim() || "serving",
+        }),
+      })
+      if (res.ok) {
+        onFoodSaved(await res.json())
+        setEditingFoodId(null)
+      }
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
+  // Log a saved food; keepOpen=true powers the fast one-tap "+" (multi-add)
+  async function logSavedFood(food: FoodItem, qty: number, keepOpen: boolean) {
+    const res = await fetch("/api/nutrition/log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        date, mealType,
+        name:     food.name,
+        calories: food.caloriesPer * qty,
+        proteinG: food.proteinGPer * qty,
+        carbsG:   food.carbsGPer   * qty,
+        fatG:     food.fatGPer     * qty,
+        quantity: qty,
+        unit:     food.unit,
+        barcode:  food.barcode,
+      }),
+    })
+    if (!res.ok) throw new Error("Failed to log")
+    const entry: FoodEntry = await res.json()
+    if (keepOpen) onAddedStay([entry])
+    else onAdded(entry)
+    // Bump lastUsedAt on the saved food
+    fetch(`/api/nutrition/foods/${food.id}`, { method: "PATCH" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((updated) => { if (updated) onFoodSaved(updated) })
+  }
+
   async function logExistingFood() {
     if (!selectedFood) return
     setLoggingExisting(true)
     try {
-      const qty = Number(existingQty) || 1
-      const res = await fetch("/api/nutrition/log", {
+      await logSavedFood(selectedFood, Number(existingQty) || 1, false)
+    } finally {
+      setLoggingExisting(false)
+    }
+  }
+
+  // Fast one-tap add of qty 1, sheet stays open so a whole meal is quick to build
+  async function quickAddSaved(food: FoodItem) {
+    setQuickAddedId(food.id)
+    try {
+      await logSavedFood(food, 1, true)
+    } catch { /* ignore */ } finally {
+      setTimeout(() => setQuickAddedId((id) => (id === food.id ? null : id)), 900)
+    }
+  }
+
+  async function repeatBundle(bundle: MealBundle) {
+    setCopyingDate(bundle.date)
+    try {
+      const res = await fetch("/api/nutrition/log/copy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          date, mealType,
-          name:     selectedFood.name,
-          calories: selectedFood.caloriesPer * qty,
-          proteinG: selectedFood.proteinGPer * qty,
-          carbsG:   selectedFood.carbsGPer   * qty,
-          fatG:     selectedFood.fatGPer     * qty,
-          quantity: qty,
-          unit:     selectedFood.unit,
-          barcode:  selectedFood.barcode,
+          sourceDate: bundle.date,
+          targetDate: date,
+          mealType,
+          targetMealType: mealType,
         }),
       })
-      if (!res.ok) throw new Error("Failed to log")
-      onAdded(await res.json())
-      // Bump lastUsedAt on the saved food
-      fetch(`/api/nutrition/foods/${selectedFood.id}`, { method: "PATCH" })
-        .then((r) => r.ok ? r.json() : null)
-        .then((updated) => { if (updated) onFoodSaved(updated) })
+      if (res.ok) onAddedMany(await res.json())
     } finally {
-      setLoggingExisting(false)
+      setCopyingDate(null)
     }
   }
 
@@ -878,6 +1545,10 @@ function AddFoodSheet({
   const previewCals = Math.round((Number(calories) || 0) * (Number(quantity) || 1))
   const showPreview = !!(calories || protein || carbs || fat) && Number(quantity) > 0
 
+  const filteredFoods = savedFoods.filter((f) =>
+    f.name.toLowerCase().includes(existingSearch.toLowerCase()),
+  )
+
   return (
     <div
       className="fixed inset-0 z-[60] flex flex-col justify-end"
@@ -894,7 +1565,7 @@ function AddFoodSheet({
 
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            {(view === "existing" || (view === "new" && savedFoods.length > 0)) && (
+            {view !== "choose" && hasChoose && (
               <button
                 onClick={() => { setView("choose"); setSelectedFood(null); setExistingSearch("") }}
                 className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100"
@@ -920,21 +1591,41 @@ function AddFoodSheet({
         {/* ── CHOOSE view ───────────────────────────────────────────────────────── */}
         {view === "choose" && (
           <div className="space-y-3">
-            <button
-              onClick={() => setView("existing")}
-              className="w-full flex items-center gap-4 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded-2xl px-4 py-4 text-left transition-colors"
-            >
-              <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                <BookOpen size={20} className="text-indigo-600" aria-hidden="true" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-900">My Foods</p>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  {savedFoods.length} saved item{savedFoods.length !== 1 ? "s" : ""}
-                </p>
-              </div>
-              <ChevronRight size={16} className="text-slate-300 flex-shrink-0" aria-hidden="true" />
-            </button>
+            {bundles.length > 0 && (
+              <button
+                onClick={() => setView("repeat")}
+                className="w-full flex items-center gap-4 bg-slate-50 hover:bg-green-50 border border-slate-200 hover:border-green-300 rounded-2xl px-4 py-4 text-left transition-colors"
+              >
+                <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
+                  <Repeat size={20} className="text-green-600" aria-hidden="true" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-900">Repeat a meal</p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Copy a recent {MEAL_LABEL[mealType].toLowerCase()} in one tap
+                  </p>
+                </div>
+                <ChevronRight size={16} className="text-slate-300 flex-shrink-0" aria-hidden="true" />
+              </button>
+            )}
+
+            {savedFoods.length > 0 && (
+              <button
+                onClick={() => setView("existing")}
+                className="w-full flex items-center gap-4 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded-2xl px-4 py-4 text-left transition-colors"
+              >
+                <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                  <BookOpen size={20} className="text-indigo-600" aria-hidden="true" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-900">My Foods</p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {savedFoods.length} saved item{savedFoods.length !== 1 ? "s" : ""} · tap ＋ to add fast
+                  </p>
+                </div>
+                <ChevronRight size={16} className="text-slate-300 flex-shrink-0" aria-hidden="true" />
+              </button>
+            )}
 
             <button
               onClick={() => setView("new")}
@@ -948,6 +1639,41 @@ function AddFoodSheet({
                 <p className="text-xs text-slate-400 mt-0.5">Scan barcode or enter manually</p>
               </div>
             </button>
+          </div>
+        )}
+
+        {/* ── REPEAT view ───────────────────────────────────────────────────────── */}
+        {view === "repeat" && (
+          <div className="flex-1 flex flex-col min-h-0">
+            <p className="text-xs text-slate-500 mb-3 flex-shrink-0">
+              Tap a day to copy its {MEAL_LABEL[mealType].toLowerCase()} into {formatDateLabel(date).toLowerCase()}.
+            </p>
+            <div className="flex-1 overflow-y-auto overscroll-contain space-y-2 min-h-0">
+              {bundles.map((b) => (
+                <button
+                  key={b.date}
+                  onClick={() => repeatBundle(b)}
+                  disabled={copyingDate === b.date}
+                  className="w-full text-left rounded-2xl border border-slate-200 bg-white hover:border-green-300 hover:bg-green-50 transition-colors px-4 py-3 disabled:opacity-60"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-900">{formatDateLabel(b.date)}</p>
+                      <p className="text-xs text-slate-400 mt-0.5 truncate">
+                        {b.items.length} item{b.items.length !== 1 ? "s" : ""} ·{" "}
+                        {b.items.map((i) => i.name).join(", ")}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-xs font-semibold text-slate-500">{b.calories} kcal</span>
+                      {copyingDate === b.date
+                        ? <Check size={16} className="text-green-500" aria-hidden="true" />
+                        : <Repeat size={15} className="text-green-500" aria-hidden="true" />}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -969,81 +1695,157 @@ function AddFoodSheet({
 
             {/* Food list */}
             <div className="flex-1 overflow-y-auto overscroll-contain space-y-1.5 min-h-0">
-              {savedFoods
-                .filter((f) => f.name.toLowerCase().includes(existingSearch.toLowerCase()))
-                .map((food) => {
-                  const isSelected = selectedFood?.id === food.id
-                  return (
-                    <div key={food.id} className={cn(
-                      "rounded-2xl border transition-colors",
-                      isSelected ? "border-indigo-400 bg-indigo-50" : "border-slate-200 bg-white"
-                    )}>
+              {filteredFoods.map((food) => {
+                const isSelected = selectedFood?.id === food.id
+                const justAdded = quickAddedId === food.id
+                const isEditing = editingFoodId === food.id
+                return (
+                  <div key={food.id} className={cn(
+                    "rounded-2xl border transition-colors",
+                    isSelected ? "border-indigo-400 bg-indigo-50" : "border-slate-200 bg-white"
+                  )}>
+                    <div className="flex items-center gap-0.5 pr-2">
                       <button
-                        onClick={() => { setSelectedFood(isSelected ? null : food); setExistingQty("1") }}
-                        className="w-full text-left px-4 py-3"
+                        onClick={() => { setSelectedFood(isSelected ? null : food); setExistingQty("1"); setEditingFoodId(null) }}
+                        className="flex-1 min-w-0 text-left px-4 py-3"
                         aria-pressed={isSelected}
+                        aria-expanded={isSelected}
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-slate-900 truncate">{food.name}</p>
-                            <p className="text-xs text-slate-400 mt-0.5">
-                              {Math.round(food.caloriesPer)} kcal · P{Math.round(food.proteinGPer)}g ·{" "}
-                              C{Math.round(food.carbsGPer)}g · F{Math.round(food.fatGPer)}g
-                              {" · "}<span className="text-slate-300">per {food.unit}</span>
-                            </p>
-                          </div>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); deleteFromLibrary(food) }}
-                            disabled={deletingFood === food.id}
-                            className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-200 hover:text-red-400 hover:bg-red-50 transition-colors flex-shrink-0 mt-0.5"
-                            aria-label={`Remove ${food.name} from My Foods`}
-                          >
-                            <Trash2 size={12} aria-hidden="true" />
-                          </button>
-                        </div>
+                        <p className="text-sm font-semibold text-slate-900 truncate flex items-center gap-1.5">
+                          {food.isFavorite && <Star size={11} className="text-amber-400 fill-amber-400 flex-shrink-0" aria-hidden="true" />}
+                          <span className="truncate">{food.name}</span>
+                        </p>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {Math.round(food.caloriesPer)} kcal · P{Math.round(food.proteinGPer)}g ·{" "}
+                          C{Math.round(food.carbsGPer)}g · F{Math.round(food.fatGPer)}g
+                          {" · "}<span className="text-slate-300">per {food.unit}</span>
+                        </p>
                       </button>
+                      {/* Favorite toggle */}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleFavorite(food) }}
+                        disabled={favBusy === food.id}
+                        className={cn(
+                          "w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors",
+                          food.isFavorite ? "text-amber-400" : "text-slate-300 hover:text-amber-400 hover:bg-amber-50",
+                        )}
+                        aria-label={food.isFavorite ? `Unfavorite ${food.name}` : `Favorite ${food.name}`}
+                        aria-pressed={food.isFavorite}
+                      >
+                        <Star size={16} className={food.isFavorite ? "fill-amber-400" : ""} aria-hidden="true" />
+                      </button>
+                      {/* Fast one-tap add (qty 1) */}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); quickAddSaved(food) }}
+                        className={cn(
+                          "w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors",
+                          justAdded ? "bg-green-100 text-green-600" : "bg-indigo-100 text-indigo-600 hover:bg-indigo-200",
+                        )}
+                        aria-label={justAdded ? `${food.name} added` : `Quick add ${food.name}`}
+                      >
+                        {justAdded ? <Check size={16} aria-hidden="true" /> : <Plus size={16} aria-hidden="true" />}
+                      </button>
+                    </div>
 
-                      {/* Inline quantity picker when selected */}
-                      {isSelected && (
-                        <div className="px-4 pb-3 space-y-3 border-t border-indigo-100 pt-3">
-                          <div className="flex items-center gap-3">
-                            <label htmlFor="existing-qty" className="text-xs font-medium text-slate-600 flex-shrink-0">
-                              Quantity
-                            </label>
+                    {/* Inline EDIT form */}
+                    {isEditing ? (
+                      <div className="px-4 pb-3 space-y-2 border-t border-slate-100 pt-3">
+                        <input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          placeholder="Food name"
+                          className="w-full h-9 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          aria-label="Food name"
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          {([
+                            { ph: "Calories", value: editCal,     set: setEditCal },
+                            { ph: "Protein g", value: editProtein, set: setEditProtein },
+                            { ph: "Carbs g",   value: editCarbs,   set: setEditCarbs },
+                            { ph: "Fat g",     value: editFat,     set: setEditFat },
+                          ] as { ph: string; value: string; set: (v: string) => void }[]).map(({ ph, value, set }) => (
                             <input
-                              id="existing-qty"
-                              type="number"
-                              min="0.1"
-                              step="0.1"
-                              value={existingQty}
-                              onChange={(e) => setExistingQty(e.target.value)}
-                              className="w-20 h-9 px-3 rounded-xl border border-indigo-200 text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              key={ph}
+                              type="number" min="0" step="0.1"
+                              value={value}
+                              onChange={(e) => set(e.target.value)}
+                              placeholder={ph}
+                              className="w-full h-9 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              aria-label={ph}
                             />
-                            <span className="text-xs text-slate-500">{food.unit}</span>
-                          </div>
-                          {/* Preview */}
-                          {Number(existingQty) > 0 && (
-                            <p className="text-xs text-indigo-600 font-medium">
-                              {Math.round(food.caloriesPer * (Number(existingQty) || 1))} kcal ·{" "}
-                              P{Math.round(food.proteinGPer * (Number(existingQty) || 1))}g ·{" "}
-                              C{Math.round(food.carbsGPer * (Number(existingQty) || 1))}g ·{" "}
-                              F{Math.round(food.fatGPer * (Number(existingQty) || 1))}g
-                            </p>
-                          )}
+                          ))}
+                        </div>
+                        <input
+                          type="text"
+                          value={editUnit}
+                          onChange={(e) => setEditUnit(e.target.value)}
+                          placeholder="Unit (serving, cup…)"
+                          className="w-full h-9 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          aria-label="Unit"
+                        />
+                        <div className="flex gap-2 pt-0.5">
                           <button
-                            onClick={logExistingFood}
-                            disabled={logginExisting || !existingQty || Number(existingQty) <= 0}
-                            className="w-full h-10 rounded-xl bg-indigo-600 text-white font-semibold text-sm disabled:opacity-50"
+                            onClick={() => setEditingFoodId(null)}
+                            className="flex-1 h-9 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium"
                           >
-                            {logginExisting ? "Adding…" : "Add to Log"}
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => saveEditedFood(food)}
+                            disabled={savingEdit || !editName.trim()}
+                            className="flex-1 h-9 rounded-xl bg-indigo-600 text-white text-sm font-semibold disabled:opacity-50"
+                          >
+                            {savingEdit ? "Saving…" : "Save"}
                           </button>
                         </div>
-                      )}
-                    </div>
-                  )
-                })}
+                      </div>
+                    ) : isSelected && (
+                      <div className="px-4 pb-3 space-y-3 border-t border-indigo-100 pt-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-xs font-medium text-slate-600 flex items-center gap-1">
+                            Quantity <span className="text-slate-400">({food.unit})</span>
+                          </span>
+                          <QtyStepper value={existingQty} onChange={setExistingQty} accent="indigo" />
+                        </div>
+                        {/* Preview */}
+                        {Number(existingQty) > 0 && (
+                          <p className="text-xs text-indigo-600 font-medium">
+                            {Math.round(food.caloriesPer * (Number(existingQty) || 1))} kcal ·{" "}
+                            P{Math.round(food.proteinGPer * (Number(existingQty) || 1))}g ·{" "}
+                            C{Math.round(food.carbsGPer * (Number(existingQty) || 1))}g ·{" "}
+                            F{Math.round(food.fatGPer * (Number(existingQty) || 1))}g
+                          </p>
+                        )}
+                        <button
+                          onClick={logExistingFood}
+                          disabled={logginExisting || !existingQty || Number(existingQty) <= 0}
+                          className="w-full h-10 rounded-xl bg-indigo-600 text-white font-semibold text-sm disabled:opacity-50"
+                        >
+                          {logginExisting ? "Adding…" : "Add to Log"}
+                        </button>
+                        <div className="flex items-center justify-between pt-0.5">
+                          <button
+                            onClick={() => startEditFood(food)}
+                            className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-700"
+                          >
+                            <Pencil size={13} aria-hidden="true" /> Edit details
+                          </button>
+                          <button
+                            onClick={() => deleteFromLibrary(food)}
+                            disabled={deletingFood === food.id}
+                            className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-red-500 disabled:opacity-50"
+                          >
+                            <Trash2 size={13} aria-hidden="true" /> Remove
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
 
-              {savedFoods.filter((f) => f.name.toLowerCase().includes(existingSearch.toLowerCase())).length === 0 && (
+              {filteredFoods.length === 0 && (
                 <div className="text-center py-10">
                   <p className="text-sm text-slate-400">No matching foods</p>
                   <button
@@ -1220,15 +2022,7 @@ function AddFoodSheet({
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label htmlFor="food-qty" className="text-xs font-medium text-slate-600 block mb-1">Quantity</label>
-                <input
-                  id="food-qty"
-                  type="number"
-                  min="0.1"
-                  step="0.1"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  className="w-full h-9 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
+                <QtyStepper id="food-qty" value={quantity} onChange={setQuantity} />
               </div>
               <div>
                 <label htmlFor="food-unit" className="text-xs font-medium text-slate-600 block mb-1">Unit</label>

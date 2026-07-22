@@ -53,7 +53,7 @@ export default async function GroceryPage(props: {
     }),
     prisma.foodItem.findMany({
       where: { userId: session.user.id },
-      orderBy: { lastUsedAt: "desc" },
+      orderBy: [{ isFavorite: "desc" }, { lastUsedAt: "desc" }],
     }),
   ])
 
