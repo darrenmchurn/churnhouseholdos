@@ -27,8 +27,14 @@ export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const q = new URL(req.url).searchParams.get("q")?.trim()
-  if (!q || q.length < 2) return NextResponse.json({ results: [] })
+  const raw = new URL(req.url).searchParams.get("q")?.trim()
+  if (!raw || raw.length < 2) return NextResponse.json({ results: [] })
+
+  // USDA's search treats + - && || ! ( ) { } [ ] ^ " ~ * ? : \ / as query
+  // operators, so a term like "Chick-Fil-A" produces a malformed query → 400.
+  // Reduce to letters / numbers / spaces / apostrophes before querying.
+  const q = raw.replace(/[^\p{L}\p{N}\s']/gu, " ").replace(/\s+/g, " ").trim()
+  if (q.length < 2) return NextResponse.json({ results: [] })
 
   try {
     const url =
