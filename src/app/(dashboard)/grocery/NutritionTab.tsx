@@ -1235,7 +1235,23 @@ type BarcodeResult = {
   unit?: string
 }
 
-type SheetView = "choose" | "existing" | "repeat" | "new"
+type SheetView = "choose" | "existing" | "repeat" | "search" | "new"
+
+type SearchResult = {
+  fdcId: number
+  name: string
+  brand: string | null
+  per100: { calories: number; protein: number; carbs: number; fat: number }
+}
+
+type SearchServing = {
+  label: string
+  unit: string
+  caloriesPer: number
+  proteinGPer: number
+  carbsGPer: number
+  fatGPer: number
+}
 
 function AddFoodSheet({
   date,
@@ -1264,9 +1280,8 @@ function AddFoodSheet({
     () => recentMealBundles(history, mealType, date),
     [history, mealType, date],
   )
-  const hasChoose = savedFoods.length > 0 || bundles.length > 0
-
-  const [view, setView] = useState<SheetView>(hasChoose ? "choose" : "new")
+  // Search + New Food are always offered, so the chooser is always the entry point
+  const [view, setView] = useState<SheetView>("choose")
   const [tab, setTab] = useState<"scan" | "manual">("scan")
 
   const [name,     setName]     = useState("")
@@ -1308,6 +1323,15 @@ function AddFoodSheet({
 
   // "Repeat" view state
   const [copyingDate, setCopyingDate] = useState<string | null>(null)
+
+  // "Search" view state (USDA FoodData Central)
+  const [searchQuery,     setSearchQuery]     = useState("")
+  const [searchResults,   setSearchResults]   = useState<SearchResult[]>([])
+  const [searching,       setSearching]       = useState(false)
+  const [searchError,     setSearchError]     = useState("")
+  const [openResultId,    setOpenResultId]    = useState<number | null>(null)
+  const [servings,        setServings]        = useState<SearchServing[] | null>(null)
+  const [loadingServings, setLoadingServings] = useState(false)
 
   // Silent save to food library after every log
   async function saveToLibrary(data: {
@@ -1490,6 +1514,61 @@ function AddFoodSheet({
   useEffect(() => () => { stopScanner() }, [])
   useEffect(() => { if (tab !== "scan") stopScanner() }, [tab])
 
+  // Debounced food-database search
+  useEffect(() => {
+    const q = searchQuery.trim()
+    if (q.length < 2) { setSearchResults([]); setSearchError(""); return }
+    const ctrl = new AbortController()
+    const t = setTimeout(async () => {
+      setSearching(true); setSearchError("")
+      try {
+        const res = await fetch(`/api/nutrition/search?q=${encodeURIComponent(q)}`, { signal: ctrl.signal })
+        const data = await res.json()
+        setSearchResults(data.results ?? [])
+        if (data.error === "rate-limited") setSearchError("Search is busy — try again in a moment.")
+        else if (data.error) setSearchError("Couldn't reach the food database.")
+        else if ((data.results ?? []).length === 0) setSearchError("")
+      } catch (e) {
+        if (!(e instanceof DOMException && e.name === "AbortError")) setSearchError("Search failed. Check your connection.")
+      } finally {
+        setSearching(false)
+      }
+    }, 400)
+    return () => { clearTimeout(t); ctrl.abort() }
+  }, [searchQuery])
+
+  async function openResult(result: SearchResult) {
+    if (openResultId === result.fdcId) { setOpenResultId(null); return }
+    setOpenResultId(result.fdcId)
+    setServings(null)
+    setLoadingServings(true)
+    try {
+      const res = await fetch(`/api/nutrition/search/detail?fdcId=${result.fdcId}`)
+      const data = await res.json()
+      setServings(data.servings ?? [])
+    } catch {
+      setServings([])
+    } finally {
+      setLoadingServings(false)
+    }
+  }
+
+  // Prefill the manual form from a chosen search result + serving, then let the
+  // user review and hit "Add to Log" (which also saves it to My Foods).
+  function useServing(result: SearchResult, serving: SearchServing) {
+    setName(result.brand ? `${result.name} (${result.brand})` : result.name)
+    setCalories(String(serving.caloriesPer))
+    setProtein(String(serving.proteinGPer))
+    setCarbs(String(serving.carbsGPer))
+    setFat(String(serving.fatGPer))
+    setQuantity("1")
+    setUnit(serving.unit)
+    setBarcodeInput("")
+    setLookupMsg("")
+    setView("new")
+    setTab("manual")
+  }
+
   async function lookupBarcode(upc: string) {
     setLookingUp(true)
     setLookupMsg("Looking up barcode…")
@@ -1582,7 +1661,7 @@ function AddFoodSheet({
 
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            {view !== "choose" && hasChoose && (
+            {view !== "choose" && (
               <button
                 onClick={() => { setView("choose"); setSelectedFood(null); setExistingSearch("") }}
                 className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100"
@@ -1608,6 +1687,20 @@ function AddFoodSheet({
         {/* ── CHOOSE view ───────────────────────────────────────────────────────── */}
         {view === "choose" && (
           <div className="space-y-3">
+            <button
+              onClick={() => setView("search")}
+              className="w-full flex items-center gap-4 bg-slate-50 hover:bg-sky-50 border border-slate-200 hover:border-sky-300 rounded-2xl px-4 py-4 text-left transition-colors"
+            >
+              <div className="w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center flex-shrink-0">
+                <Search size={20} className="text-sky-600" aria-hidden="true" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-slate-900">Search foods</p>
+                <p className="text-xs text-slate-400 mt-0.5">Fast food, brands &amp; everyday foods</p>
+              </div>
+              <ChevronRight size={16} className="text-slate-300 flex-shrink-0" aria-hidden="true" />
+            </button>
+
             {bundles.length > 0 && (
               <button
                 onClick={() => setView("repeat")}
@@ -1691,6 +1784,107 @@ function AddFoodSheet({
                 </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* ── SEARCH view (USDA food database) ──────────────────────────────────── */}
+        {view === "search" && (
+          <div className="flex-1 flex flex-col min-h-0">
+            <div className="relative mb-3 flex-shrink-0">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" aria-hidden="true" />
+              <input
+                type="text"
+                autoFocus
+                enterKeyHint="search"
+                placeholder="Search fast food &amp; foods…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full h-10 pl-9 pr-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                aria-label="Search the food database"
+              />
+            </div>
+
+            <div className="flex-1 overflow-y-auto overscroll-contain space-y-1.5 min-h-0" aria-live="polite">
+              {searching && (
+                <p className="text-sm text-slate-400 text-center py-6" role="status">Searching…</p>
+              )}
+              {!searching && searchError && (
+                <p className="text-sm text-slate-500 text-center py-6">{searchError}</p>
+              )}
+              {!searching && !searchError && searchQuery.trim().length < 2 && (
+                <p className="text-xs text-slate-400 text-center py-8 px-6">
+                  Type a food name — e.g. “big mac”, “chipotle bowl”, or “banana”.
+                </p>
+              )}
+              {!searching && !searchError && searchQuery.trim().length >= 2 && searchResults.length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-sm text-slate-400">No matches</p>
+                  <button onClick={() => setView("new")} className="mt-2 text-sm text-indigo-600 font-medium">
+                    Add it manually →
+                  </button>
+                </div>
+              )}
+
+              {searchResults.map((r) => {
+                const open = openResultId === r.fdcId
+                return (
+                  <div key={r.fdcId} className={cn(
+                    "rounded-2xl border transition-colors",
+                    open ? "border-sky-400 bg-sky-50" : "border-slate-200 bg-white",
+                  )}>
+                    <button
+                      onClick={() => openResult(r)}
+                      className="w-full text-left px-4 py-3"
+                      aria-expanded={open}
+                    >
+                      <p className="text-sm font-semibold text-slate-900">{r.name}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {r.brand ? `${r.brand} · ` : ""}{r.per100.calories} kcal / 100g
+                      </p>
+                    </button>
+
+                    {open && (
+                      <div className="px-4 pb-3 border-t border-sky-100 pt-3">
+                        {loadingServings ? (
+                          <p className="text-xs text-slate-400 py-1">Loading portions…</p>
+                        ) : servings && servings.length > 0 ? (
+                          <>
+                            <p className="text-xs font-medium text-slate-500 mb-2">Choose a portion</p>
+                            <div className="space-y-1.5">
+                              {servings.map((s, i) => (
+                                <button
+                                  key={i}
+                                  onClick={() => useServing(r, s)}
+                                  className="w-full flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white hover:border-sky-300 hover:bg-sky-50 px-3 py-2 text-left transition-colors"
+                                >
+                                  <span className="text-sm text-slate-800 truncate">{s.label}</span>
+                                  <span className="text-xs font-semibold text-slate-500 flex-shrink-0">{s.caloriesPer} kcal</span>
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => useServing(r, {
+                              label: "100 g", unit: "100 g",
+                              caloriesPer: r.per100.calories, proteinGPer: r.per100.protein,
+                              carbsGPer: r.per100.carbs, fatGPer: r.per100.fat,
+                            })}
+                            className="text-xs text-sky-600 font-medium py-1"
+                          >
+                            Use per-100g values →
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            <p className="text-[10px] text-slate-300 text-center pt-2 flex-shrink-0">
+              Powered by USDA FoodData Central
+            </p>
           </div>
         )}
 
