@@ -1526,7 +1526,13 @@ function AddFoodSheet({
         const data = await res.json()
         setSearchResults(data.results ?? [])
         if (data.error === "rate-limited") setSearchError("Search is busy — try again in a moment.")
-        else if (data.error) setSearchError("Couldn't reach the food database.")
+        else if (data.error) {
+          // Diagnostic detail so config issues are visible without server logs
+          const why = data.demoKey
+            ? " — no API key detected on the server"
+            : data.status ? ` (code ${data.status})` : ""
+          setSearchError(`Couldn't reach the food database${why}.`)
+        }
         else if ((data.results ?? []).length === 0) setSearchError("")
       } catch (e) {
         if (!(e instanceof DOMException && e.name === "AbortError")) setSearchError("Search failed. Check your connection.")

@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth"
 // serving options (real household portions like "1 Big Mac", plus 100 g), each
 // with per-serving macros — so a per-100g database entry becomes loggable as a
 // whole item.
-const USDA_KEY = process.env.USDA_FDC_API_KEY || "DEMO_KEY"
+const USDA_KEY = (process.env.USDA_FDC_API_KEY || "DEMO_KEY").trim()
 
 type DetailNutrient = { nutrient?: { number?: string }; amount?: number }
 type FoodPortion = { gramWeight?: number; portionDescription?: string; modifier?: string }
@@ -58,9 +58,12 @@ export async function GET(req: NextRequest) {
   try {
     const res = await fetch(
       `https://api.nal.usda.gov/fdc/v1/food/${encodeURIComponent(fdcId)}?api_key=${USDA_KEY}`,
-      { signal: AbortSignal.timeout(6000) },
+      { signal: AbortSignal.timeout(10000) },
     )
-    if (!res.ok) return NextResponse.json({ error: "upstream" }, { status: 200 })
+    if (!res.ok) {
+      console.error(`[nutrition/search/detail] USDA ${res.status}`)
+      return NextResponse.json({ error: "upstream", status: res.status }, { status: 200 })
+    }
 
     const d = (await res.json()) as FoodDetail
     const base = {

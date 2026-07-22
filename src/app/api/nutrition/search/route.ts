@@ -4,7 +4,9 @@ import { auth } from "@/lib/auth"
 // USDA FoodData Central text search. Free API key — set USDA_FDC_API_KEY in the
 // environment (Vercel + .env.local); falls back to the shared, rate-limited
 // DEMO_KEY so search works out of the box before a real key is added.
-const USDA_KEY = process.env.USDA_FDC_API_KEY || "DEMO_KEY"
+// .trim() defends against a stray space/newline pasted into the env value
+const USDA_KEY = (process.env.USDA_FDC_API_KEY || "DEMO_KEY").trim()
+const USING_DEMO = USDA_KEY === "DEMO_KEY"
 
 type SearchNutrient = { nutrientNumber?: string; value?: number }
 type SearchFood = {
@@ -34,10 +36,18 @@ export async function GET(req: NextRequest) {
       `&query=${encodeURIComponent(q)}&pageSize=20` +
       `&dataType=${encodeURIComponent("Branded,Survey (FNDDS),SR Legacy,Foundation")}`
 
-    const res = await fetch(url, { signal: AbortSignal.timeout(6000) })
+    const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
     if (!res.ok) {
+      // Log the real status to Vercel function logs; surface it (and whether the
+      // demo key is in use) to the client so config problems are diagnosable.
+      console.error(`[nutrition/search] USDA ${res.status}${USING_DEMO ? " (DEMO_KEY)" : ""}`)
       return NextResponse.json(
-        { results: [], error: res.status === 429 ? "rate-limited" : "upstream" },
+        {
+          results: [],
+          error: res.status === 429 ? "rate-limited" : "upstream",
+          status: res.status,
+          demoKey: USING_DEMO,
+        },
         { status: 200 },
       )
     }
@@ -58,7 +68,12 @@ export async function GET(req: NextRequest) {
       .filter((r) => r.name && r.per100.calories > 0)
 
     return NextResponse.json({ results })
-  } catch {
-    return NextResponse.json({ results: [], error: "network" }, { status: 200 })
+  } catch (e) {
+    // Timeout (AbortError) or DNS/connection failure
+    console.error(`[nutrition/search] fetch failed:`, e instanceof Error ? e.name : e)
+    return NextResponse.json(
+      { results: [], error: "network", demoKey: USING_DEMO },
+      { status: 200 },
+    )
   }
 }
