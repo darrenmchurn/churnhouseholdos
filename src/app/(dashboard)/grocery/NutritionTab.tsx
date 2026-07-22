@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react"
+import { createPortal } from "react-dom"
 import Link from "next/link"
 import {
   ChevronLeft, ChevronRight, Plus, Minus, X, Trash2,
@@ -260,6 +261,19 @@ function MacroRow({
       </span>
     </div>
   )
+}
+
+// ─── Sheet portal ─────────────────────────────────────────────────────────────
+// Bottom sheets must render at document.body level, or a parent stacking context
+// traps them behind the fixed BottomNav (z-50) and clips their bottom content.
+// The base Modal component uses the same pattern. data-theme lives on <body>, so
+// portaled children still inherit the active theme.
+
+function SheetPortal({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  if (!mounted) return null
+  return createPortal(children, document.body)
 }
 
 // ─── Quantity stepper ─────────────────────────────────────────────────────────
@@ -1127,8 +1141,9 @@ function EditEntrySheet({
   }
 
   return (
+    <SheetPortal>
     <div
-      className="fixed inset-0 z-[60] flex flex-col justify-end"
+      className="fixed inset-0 z-[100] flex flex-col justify-end"
       role="dialog"
       aria-modal="true"
       aria-label={`Edit ${entry.name}`}
@@ -1204,6 +1219,7 @@ function EditEntrySheet({
         </div>
       </div>
     </div>
+    </SheetPortal>
   )
 }
 
@@ -1550,8 +1566,9 @@ function AddFoodSheet({
   )
 
   return (
+    <SheetPortal>
     <div
-      className="fixed inset-0 z-[60] flex flex-col justify-end"
+      className="fixed inset-0 z-[100] flex flex-col justify-end"
       role="dialog"
       aria-modal="true"
       aria-label={`Add food to ${MEAL_LABEL[mealType]}`}
@@ -2072,5 +2089,6 @@ function AddFoodSheet({
         )}
       </div>
     </div>
+    </SheetPortal>
   )
 }
