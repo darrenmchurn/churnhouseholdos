@@ -79,6 +79,72 @@ const MEAL_ICON: Record<MealSection, string> = {
   BREAKFAST: "☀️", LUNCH: "🌤️", DINNER: "🌙", SNACK: "🍎",
 }
 
+// ─── Food emoji (heuristic from the name — works for any source) ──────────────
+
+const EMOJI_RULES: [RegExp, string][] = [
+  [/\b(fries|waffle potato|tater tot|tots)\b/, "🍟"],
+  [/(mac.*cheese|cheese.*mac)/, "🧀"],
+  [/(burger|big mac|whopper|baconator|quarter pounder|steakburger|patty melt|double-double|double double)/, "🍔"],
+  [/(nugget|tender|chicken finger|\bfinger\b|wing|popcorn chicken|chicken strip)/, "🍗"],
+  [/(taco)/, "🌮"],
+  [/(burrito|crunchwrap|chalupa|gordita|quesadilla|\bwrap\b|tortilla)/, "🌯"],
+  [/(pizza)/, "🍕"],
+  [/(hot ?dog|corn dog)/, "🌭"],
+  [/(sandwich|\bsub\b|b\.?m\.?t|hoagie|\bmelt\b|\bclub\b|\bblt\b|croissant.*egg|biscuit.*egg)/, "🥪"],
+  [/(salad|greens)/, "🥗"],
+  [/(soup|chili|bisque|gumbo)/, "🍲"],
+  [/(chow mein|lo mein|ramen|noodle|spaghetti|\bpasta\b)/, "🍜"],
+  [/(fried rice|steamed rice|white rice|brown rice|\brice\b)/, "🍚"],
+  [/(smoothie|milkshake|\bshake\b|frappuccino|frappe)/, "🥤"],
+  [/(coffee|latte|cappuccino|macchiato|mocha|espresso|americano|cold brew|pike place)/, "☕"],
+  [/(donut|doughnut)/, "🍩"],
+  [/(bagel)/, "🥯"],
+  [/(croissant)/, "🥐"],
+  [/(pancake|waffle|french toast)/, "🥞"],
+  [/\b(egg|omelet|omelette)\b/, "🍳"],
+  [/(bacon|sausage|\bham\b)/, "🥓"],
+  [/(steak|barbacoa|carnitas|brisket|\bbeef\b|meatball)/, "🥩"],
+  [/(shrimp|prawn)/, "🦐"],
+  [/(fish|salmon|tuna|tilapia|\bcod\b|catfish)/, "🐟"],
+  [/(guac|avocado)/, "🥑"],
+  [/(nacho|queso|cheese)/, "🧀"],
+  [/\bbean\b|beans/, "🫘"],
+  [/(chicken)/, "🍗"],
+  [/(yogurt|yoghurt|\bmilk\b|latte)/, "🥛"],
+  [/(banana)/, "🍌"],
+  [/(apple)/, "🍎"],
+  [/(berry|strawberry|blueberry|raspberry)/, "🍓"],
+  [/(ice cream|custard|concrete|sundae|gelato|frozen)/, "🍦"],
+  [/(cookie|brownie)/, "🍪"],
+  [/(cake|cinnamon|\btwist\b|pastry|muffin|cupcake)/, "🧁"],
+  [/(chips|pretzel)/, "🥨"],
+  [/(toast|bread|\broll\b|biscuit)/, "🍞"],
+  [/(almond|\bnut\b|nuts|peanut)/, "🥜"],
+  [/(oat|granola|cereal)/, "🥣"],
+]
+
+function foodEmoji(name: string): string {
+  const n = name.toLowerCase()
+  for (const [re, emoji] of EMOJI_RULES) if (re.test(n)) return emoji
+  return "🍽️"
+}
+
+// Colored macro breakdown, matching the summary progress-bar colors
+function MacroBreakdown({ cal, p, c, f }: { cal: number; p: number; c: number; f: number }) {
+  const dot = <span className="text-slate-300" aria-hidden="true"> · </span>
+  return (
+    <>
+      <span className="text-orange-500 font-medium" aria-label={`${Math.round(cal)} calories`}>{Math.round(cal)} kcal</span>
+      {dot}
+      <span className="text-red-500 font-medium" aria-label={`${Math.round(p)} grams protein`}>P{Math.round(p)}g</span>
+      {dot}
+      <span className="text-amber-600 font-medium" aria-label={`${Math.round(c)} grams carbs`}>C{Math.round(c)}g</span>
+      {dot}
+      <span className="text-purple-500 font-medium" aria-label={`${Math.round(f)} grams fat`}>F{Math.round(f)}g</span>
+    </>
+  )
+}
+
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
 function todayStr(): string {
@@ -1073,22 +1139,19 @@ function FoodEntryRow({
   onEdit: (entry: FoodEntry) => void
 }) {
   return (
-    <div className="flex items-center gap-2 min-h-[2.75rem]">
+    <div className="flex items-center gap-2.5 min-h-[2.75rem]">
+      <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-lg flex-shrink-0 self-center" aria-hidden="true">
+        {foodEmoji(entry.name)}
+      </div>
       <button
         onClick={() => onEdit(entry)}
-        className="flex-1 min-w-0 self-center text-left rounded-lg -mx-1 px-1 py-0.5 hover:bg-slate-50 transition-colors"
+        className="flex-1 min-w-0 self-center text-left rounded-lg px-1 py-0.5 hover:bg-slate-50 transition-colors"
         aria-label={`Edit ${entry.name}`}
       >
         <p className="text-sm text-slate-800 truncate">{entry.name}</p>
-        <p className="text-xs text-slate-500">
-          <span aria-label={`${Math.round(entry.calories)} calories`}>{Math.round(entry.calories)} kcal</span>
-          {" · "}
-          <span aria-label={`${Math.round(entry.proteinG)} grams protein`}>P{Math.round(entry.proteinG)}g</span>
-          {" · "}
-          <span aria-label={`${Math.round(entry.carbsG)} grams carbs`}>C{Math.round(entry.carbsG)}g</span>
-          {" · "}
-          <span aria-label={`${Math.round(entry.fatG)} grams fat`}>F{Math.round(entry.fatG)}g</span>
-          {entry.quantity !== 1 && <span aria-label={`quantity ${entry.quantity}`}>{" · "}{entry.quantity}×</span>}
+        <p className="text-xs">
+          <MacroBreakdown cal={entry.calories} p={entry.proteinG} c={entry.carbsG} f={entry.fatG} />
+          {entry.quantity !== 1 && <span className="text-slate-400" aria-label={`quantity ${entry.quantity}`}>{" · "}{entry.quantity}×</span>}
         </p>
       </button>
       <button
@@ -1844,13 +1907,19 @@ function AddFoodSheet({
                   )}>
                     <button
                       onClick={() => openResult(r)}
-                      className="w-full text-left px-4 py-3"
+                      className="w-full text-left px-3 py-3 flex items-center gap-2.5"
                       aria-expanded={open}
                     >
-                      <p className="text-sm font-semibold text-slate-900">{r.name}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        {r.brand ? `${r.brand} · ` : ""}{r.calories} kcal · {r.note}
-                      </p>
+                      <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-lg flex-shrink-0" aria-hidden="true">
+                        {foodEmoji(r.name)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-900 truncate">{r.name}</p>
+                        <p className="text-xs text-slate-400 mt-0.5 truncate">
+                          {r.brand ? `${r.brand} · ` : ""}
+                          <span className="text-orange-500 font-medium">{r.calories} kcal</span> · {r.note}
+                        </p>
+                      </div>
                     </button>
 
                     {open && (
@@ -1936,13 +2005,13 @@ function AddFoodSheet({
                         aria-expanded={isSelected}
                       >
                         <p className="text-sm font-semibold text-slate-900 truncate flex items-center gap-1.5">
+                          <span className="text-base flex-shrink-0" aria-hidden="true">{foodEmoji(food.name)}</span>
                           {food.isFavorite && <Star size={11} className="text-amber-400 fill-amber-400 flex-shrink-0" aria-hidden="true" />}
                           <span className="truncate">{food.name}</span>
                         </p>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                          {Math.round(food.caloriesPer)} kcal · P{Math.round(food.proteinGPer)}g ·{" "}
-                          C{Math.round(food.carbsGPer)}g · F{Math.round(food.fatGPer)}g
-                          {" · "}<span className="text-slate-300">per {food.unit}</span>
+                        <p className="text-xs mt-0.5">
+                          <MacroBreakdown cal={food.caloriesPer} p={food.proteinGPer} c={food.carbsGPer} f={food.fatGPer} />
+                          {" "}<span className="text-slate-400">· per {food.unit}</span>
                         </p>
                       </button>
                       {/* Favorite toggle */}
