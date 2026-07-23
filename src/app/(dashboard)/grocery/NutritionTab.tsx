@@ -1238,7 +1238,7 @@ type BarcodeResult = {
 type SheetView = "choose" | "existing" | "repeat" | "search" | "new"
 
 type SearchResult = {
-  source: "usda" | "nix"
+  source: "local" | "usda" | "nix"
   id: string
   name: string
   brand: string | null

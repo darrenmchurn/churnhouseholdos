@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
+import { searchCurated } from "@/lib/fastFoodDb"
 
 // Two food databases, merged into one result list:
 //  - Nutritionix: restaurant / fast-food / brand coverage (Chick-fil-A, Cane's…)
@@ -11,12 +12,24 @@ const NIX_ID   = process.env.NUTRITIONIX_APP_ID?.trim()
 const NIX_KEY  = process.env.NUTRITIONIX_APP_KEY?.trim()
 
 export type SearchResult = {
-  source: "usda" | "nix"
+  source: "local" | "usda" | "nix"
   id: string
   name: string
   brand: string | null
   calories: number
   note: string // display hint for the calorie basis, e.g. "per 100 g" or "8 nuggets"
+}
+
+// Curated local database (fast food / chains) — synchronous, no key, no network
+function searchLocalDb(q: string): SearchResult[] {
+  return searchCurated(q).map((f) => ({
+    source: "local" as const,
+    id: f.id,
+    name: f.name,
+    brand: f.brand,
+    calories: f.servings[0].caloriesPer,
+    note: f.servings[0].label,
+  }))
 }
 
 type Provider = { results: SearchResult[]; error?: string; status?: number }
@@ -113,9 +126,11 @@ export async function GET(req: NextRequest) {
   // strip them for USDA. Nutritionix handles natural language, so it gets the raw text.
   const usdaQ = raw.replace(/[^\p{L}\p{N}\s']/gu, " ").replace(/\s+/g, " ").trim() || raw
 
-  // Nutritionix first (restaurant/brand relevance), then USDA (generic/grocery)
+  // Curated local matches first (exact chains the family eats), then Nutritionix
+  // (restaurant/brand), then USDA (generic/grocery)
+  const local = searchLocalDb(raw)
   const [nix, usda] = await Promise.all([searchNix(raw), searchUsda(usdaQ)])
-  const results = [...nix.results, ...usda.results].slice(0, 30)
+  const results = [...local, ...nix.results, ...usda.results].slice(0, 30)
 
   if (results.length === 0) {
     const err = nix.error || usda.error

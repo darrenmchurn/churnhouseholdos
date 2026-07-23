@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
+import { getCurated } from "@/lib/fastFoodDb"
 
 // Detail lookup for one search result → a set of per-serving portion options.
 // Routes to USDA or Nutritionix based on ?source=.
@@ -198,6 +199,11 @@ export async function GET(req: NextRequest) {
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 })
 
   try {
+    if (source === "local") {
+      const f = getCurated(id)
+      if (!f) return NextResponse.json({ error: "not-found" }, { status: 200 })
+      return NextResponse.json({ name: f.name, brand: f.brand, servings: f.servings })
+    }
     const out = source === "nix" ? await nixDetail(id) : await usdaDetail(id)
     if (!out) return NextResponse.json({ error: "upstream" }, { status: 200 })
     return NextResponse.json(out)
