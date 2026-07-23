@@ -1238,10 +1238,12 @@ type BarcodeResult = {
 type SheetView = "choose" | "existing" | "repeat" | "search" | "new"
 
 type SearchResult = {
-  fdcId: number
+  source: "usda" | "nix"
+  id: string
   name: string
   brand: string | null
-  per100: { calories: number; protein: number; carbs: number; fat: number }
+  calories: number
+  note: string
 }
 
 type SearchServing = {
@@ -1329,7 +1331,7 @@ function AddFoodSheet({
   const [searchResults,   setSearchResults]   = useState<SearchResult[]>([])
   const [searching,       setSearching]       = useState(false)
   const [searchError,     setSearchError]     = useState("")
-  const [openResultId,    setOpenResultId]    = useState<number | null>(null)
+  const [openResultId,    setOpenResultId]    = useState<string | null>(null)
   const [servings,        setServings]        = useState<SearchServing[] | null>(null)
   const [loadingServings, setLoadingServings] = useState(false)
 
@@ -1544,12 +1546,13 @@ function AddFoodSheet({
   }, [searchQuery])
 
   async function openResult(result: SearchResult) {
-    if (openResultId === result.fdcId) { setOpenResultId(null); return }
-    setOpenResultId(result.fdcId)
+    const rid = `${result.source}:${result.id}`
+    if (openResultId === rid) { setOpenResultId(null); return }
+    setOpenResultId(rid)
     setServings(null)
     setLoadingServings(true)
     try {
-      const res = await fetch(`/api/nutrition/search/detail?fdcId=${result.fdcId}`)
+      const res = await fetch(`/api/nutrition/search/detail?source=${result.source}&id=${encodeURIComponent(result.id)}`)
       const data = await res.json()
       setServings(data.servings ?? [])
     } catch {
@@ -1832,9 +1835,10 @@ function AddFoodSheet({
               )}
 
               {searchResults.map((r) => {
-                const open = openResultId === r.fdcId
+                const rid = `${r.source}:${r.id}`
+                const open = openResultId === rid
                 return (
-                  <div key={r.fdcId} className={cn(
+                  <div key={rid} className={cn(
                     "rounded-2xl border transition-colors",
                     open ? "border-sky-400 bg-sky-50" : "border-slate-200 bg-white",
                   )}>
@@ -1845,7 +1849,7 @@ function AddFoodSheet({
                     >
                       <p className="text-sm font-semibold text-slate-900">{r.name}</p>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        {r.brand ? `${r.brand} · ` : ""}{r.per100.calories} kcal / 100g
+                        {r.brand ? `${r.brand} · ` : ""}{r.calories} kcal · {r.note}
                       </p>
                     </button>
 
@@ -1871,14 +1875,17 @@ function AddFoodSheet({
                           </>
                         ) : (
                           <button
-                            onClick={() => useServing(r, {
-                              label: "100 g", unit: "100 g",
-                              caloriesPer: r.per100.calories, proteinGPer: r.per100.protein,
-                              carbsGPer: r.per100.carbs, fatGPer: r.per100.fat,
-                            })}
+                            onClick={() => {
+                              setName(r.brand ? `${r.name} (${r.brand})` : r.name)
+                              setCalories(String(r.calories))
+                              setProtein(""); setCarbs(""); setFat("")
+                              setQuantity("1"); setUnit(r.note)
+                              setBarcodeInput(""); setLookupMsg("")
+                              setView("new"); setTab("manual")
+                            }}
                             className="text-xs text-sky-600 font-medium py-1"
                           >
-                            Use per-100g values →
+                            Couldn’t load portions — add manually →
                           </button>
                         )}
                       </div>
