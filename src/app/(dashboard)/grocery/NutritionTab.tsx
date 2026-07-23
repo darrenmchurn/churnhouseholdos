@@ -1307,6 +1307,49 @@ type SearchResult = {
   brand: string | null
   calories: number
   note: string
+  protein?: number
+  carbs?: number
+  fat?: number
+}
+
+// Primary brand colors — used as a subtle accent tint behind the result emoji
+const BRAND_COLORS: Record<string, string> = {
+  "chick-fil-a": "#e51636",
+  "raising cane's": "#c8102e",
+  "mcdonald's": "#ffc72c",
+  "wendy's": "#e2203d",
+  "chipotle": "#a81612",
+  "taco bell": "#702082",
+  "starbucks": "#00704a",
+  "panda express": "#d02b27",
+  "panera": "#6e9b34",
+  "smoothie king": "#5b2a86",
+  "freddy's": "#e4002b",
+  "torchy's tacos": "#ed1c24",
+  "subway": "#009444",
+  "popeyes": "#f58220",
+  "whataburger": "#ff5f00",
+  "in-n-out": "#e31837",
+  "dunkin'": "#ff671f",
+}
+function brandColor(brand: string | null): string | null {
+  return brand ? BRAND_COLORS[brand.toLowerCase()] ?? null : null
+}
+
+// Macro-composition bar: red/amber/purple segments sized by each macro's share
+// of calories (protein & carbs 4 kcal/g, fat 9 kcal/g). Matches the summary bars.
+function MacroBar({ p, c, f }: { p: number; c: number; f: number }) {
+  const pc = p * 4, cc = c * 4, fc = f * 9
+  const total = pc + cc + fc
+  if (total <= 0) return null
+  const pct = (n: number) => `${(n / total) * 100}%`
+  return (
+    <div className="flex h-1.5 rounded-full overflow-hidden mt-1.5 bg-slate-100" aria-hidden="true">
+      <div className="bg-red-400" style={{ width: pct(pc) }} />
+      <div className="bg-yellow-400" style={{ width: pct(cc) }} />
+      <div className="bg-purple-400" style={{ width: pct(fc) }} />
+    </div>
+  )
 }
 
 type SearchServing = {
@@ -1910,15 +1953,27 @@ function AddFoodSheet({
                       className="w-full text-left px-3 py-3 flex items-center gap-2.5"
                       aria-expanded={open}
                     >
-                      <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-lg flex-shrink-0" aria-hidden="true">
-                        {foodEmoji(r.name)}
-                      </div>
+                      {(() => {
+                        const accent = brandColor(r.brand)
+                        return (
+                          <div
+                            className={cn("w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0", !accent && "bg-slate-100")}
+                            style={accent ? { backgroundColor: `${accent}2e` } : undefined}
+                            aria-hidden="true"
+                          >
+                            {foodEmoji(r.name)}
+                          </div>
+                        )
+                      })()}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-slate-900 truncate">{r.name}</p>
                         <p className="text-xs text-slate-400 mt-0.5 truncate">
                           {r.brand ? `${r.brand} · ` : ""}
                           <span className="text-orange-500 font-medium">{r.calories} kcal</span> · {r.note}
                         </p>
+                        {r.protein != null && r.carbs != null && r.fat != null && (
+                          <MacroBar p={r.protein} c={r.carbs} f={r.fat} />
+                        )}
                       </div>
                     </button>
 

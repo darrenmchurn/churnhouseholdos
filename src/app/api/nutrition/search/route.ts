@@ -18,18 +18,29 @@ export type SearchResult = {
   brand: string | null
   calories: number
   note: string // display hint for the calorie basis, e.g. "per 100 g" or "8 nuggets"
+  // per-serving (local/usda) macros — drive the macro-composition bar; omitted
+  // for Nutritionix (its instant search doesn't return full macros)
+  protein?: number
+  carbs?: number
+  fat?: number
 }
 
 // Curated local database (fast food / chains) — synchronous, no key, no network
 function searchLocalDb(q: string): SearchResult[] {
-  return searchCurated(q).map((f) => ({
-    source: "local" as const,
-    id: f.id,
-    name: f.name,
-    brand: f.brand,
-    calories: f.servings[0].caloriesPer,
-    note: f.servings[0].label,
-  }))
+  return searchCurated(q).map((f) => {
+    const v = f.servings[0]
+    return {
+      source: "local" as const,
+      id: f.id,
+      name: f.name,
+      brand: f.brand,
+      calories: v.caloriesPer,
+      note: v.label,
+      protein: v.proteinGPer,
+      carbs: v.carbsGPer,
+      fat: v.fatGPer,
+    }
+  })
 }
 
 type Provider = { results: SearchResult[]; error?: string; status?: number }
@@ -66,6 +77,9 @@ async function searchUsda(q: string): Promise<Provider> {
         brand: (f.brandName || f.brandOwner || "").trim() || null,
         calories: Math.round(usdaNutr(f.foodNutrients, "208")),
         note: "per 100 g",
+        protein: Math.round(usdaNutr(f.foodNutrients, "203") * 10) / 10,
+        carbs:   Math.round(usdaNutr(f.foodNutrients, "205") * 10) / 10,
+        fat:     Math.round(usdaNutr(f.foodNutrients, "204") * 10) / 10,
       }))
       .filter((r) => r.name && r.calories > 0)
     return { results }
