@@ -14,6 +14,12 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "Churn HOS",
   },
+  other: {
+    // Next 16 only emits the new standard "mobile-web-app-capable" tag;
+    // iOS versions before Safari 16.4 need this nonstandard one too for
+    // standalone (no browser chrome) launch from the home screen.
+    "apple-mobile-web-app-capable": "yes",
+  },
 }
 
 // Browser-chrome tint per theme — dark themes get their page background so the

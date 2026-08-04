@@ -17,9 +17,11 @@ export default async function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-indigo-600 shadow-lg mb-4">
-            <span className="text-4xl">🏠</span>
-          </div>
+          <img
+            src="/logo.png"
+            alt="Churn Household OS"
+            className="inline-block w-20 h-20 rounded-3xl shadow-lg mb-4"
+          />
           <h1 className="text-3xl font-bold text-slate-900">Churn Household OS</h1>
           <p className="text-slate-500 mt-1">Who&apos;s signing in?</p>
         </div>
