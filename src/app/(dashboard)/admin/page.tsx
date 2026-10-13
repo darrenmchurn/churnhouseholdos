@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma"
 import { AnnouncementManager } from "./AnnouncementManager"
 import { UserList } from "./UserList"
 import { KidsZoneTileManager } from "./KidsZoneTileManager"
+import { FavoriteCategoryManager } from "./FavoriteCategoryManager"
+import { ensureFavoriteCategories } from "@/lib/favorites"
 
 export default async function AdminPage() {
   const session = await auth()
@@ -15,7 +17,8 @@ export default async function AdminPage() {
 
   const isAdmin = role === "ADMIN"
 
-  const [users, announcements, kidsZoneTiles] = await Promise.all([
+  await ensureFavoriteCategories()
+  const [users, announcements, kidsZoneTiles, favoriteCategories] = await Promise.all([
     prisma.user.findMany({
       select: { id: true, name: true, role: true, avatarColor: true, createdAt: true },
       orderBy: { createdAt: "asc" },
@@ -25,6 +28,10 @@ export default async function AdminPage() {
       include: { creator: { select: { name: true, avatarColor: true } } },
     }),
     prisma.kidsZoneTile.findMany({ orderBy: { sortOrder: "asc" } }),
+    prisma.favoriteCategory.findMany({
+      orderBy: { sortOrder: "asc" },
+      select: { id: true, label: true, emoji: true, group: true, active: true, sortOrder: true, _count: { select: { favorites: true } } },
+    }),
   ])
 
   return (
@@ -63,6 +70,13 @@ export default async function AdminPage() {
       <section>
         <h2 className="text-base font-semibold text-slate-700 mb-3">🎮 Kids Zone Tiles</h2>
         <KidsZoneTileManager initialTiles={kidsZoneTiles} />
+      </section>
+
+      {/* Family Favorites categories */}
+      <section>
+        <h2 className="text-base font-semibold text-slate-700 mb-1">⭐ Favorites Categories</h2>
+        <p className="text-xs text-slate-500 mb-3">The questions everyone answers on the Family Favorites page. Hide a category to keep its answers without showing it.</p>
+        <FavoriteCategoryManager initialCategories={favoriteCategories} />
       </section>
 
       {/* How everything works — collapsed by default to reduce page length */}

@@ -15,6 +15,7 @@ import {
   Star,
   Settings,
   History,
+  ChevronRight,
 } from "lucide-react"
 import { avatarTextColor } from "@/lib/utils"
 import { KidsZoneSection } from "./KidsZoneSection"
@@ -237,6 +238,19 @@ export default async function DashboardPage() {
           )
         })}
       </div>
+
+      {/* Family Favorites */}
+      <Link
+        href="/favorites"
+        className="bg-gradient-to-br from-amber-50 to-rose-50 rounded-2xl p-4 shadow-card-md flex items-center gap-3 active:scale-[0.98] transition-transform"
+      >
+        <span className="w-11 h-11 rounded-xl bg-white/80 flex items-center justify-center text-2xl flex-shrink-0">⭐</span>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-slate-900">Family Favorites</p>
+          <p className="text-xs text-slate-500">Colors, treats, sizes &amp; more for everyone</p>
+        </div>
+        <ChevronRight size={18} className="text-slate-400" />
+      </Link>
 
       {/* Kids Zone — Games & Learning (CHILD only) */}
       {isChild && <KidsZoneSection tiles={kidsZoneTiles} />}

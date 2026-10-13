@@ -3,7 +3,8 @@ export const dynamic = "force-dynamic"
 import { auth, signOut } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
-import { LogOut } from "lucide-react"
+import Link from "next/link"
+import { LogOut, ChevronRight } from "lucide-react"
 import { ProfileForm } from "./ProfileForm"
 import { ROLE_LABELS, ROLE_COLORS, avatarTextColor } from "@/lib/utils"
 
@@ -18,6 +19,8 @@ export default async function ProfilePage() {
   })
 
   if (!user) redirect("/login")
+
+  const favoriteCount = await prisma.favorite.count({ where: { userId: session.user.id } })
 
   return (
     <div className="px-4 pt-6 pb-4 max-w-2xl mx-auto">
@@ -41,6 +44,21 @@ export default async function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Family Favorites — edited on its own page */}
+      <Link
+        href={`/favorites/${session.user.id}`}
+        className="mb-6 bg-white rounded-2xl border border-slate-200 p-4 flex items-center gap-3 active:scale-[0.98] transition-transform"
+      >
+        <span className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-xl flex-shrink-0">⭐</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-base font-semibold text-slate-700">My Favorites</p>
+          <p className="text-xs text-slate-500">
+            {favoriteCount > 0 ? `${favoriteCount} filled in · tap to update` : "Favorite color, food, sizes & more"}
+          </p>
+        </div>
+        <ChevronRight size={18} className="text-slate-300" />
+      </Link>
 
       <ProfileForm
         initialName={user.name}

@@ -62,6 +62,8 @@ model User {
   foodLogs          FoodLog[]
   weightLogs        WeightLog[]
   foodItems         FoodItem[]
+  favorites         Favorite[]         @relation("FavoriteOwner")
+  favoritesEdited   Favorite[]         @relation("FavoriteEditor")
 }
 
 model Task {
@@ -301,4 +303,37 @@ model MealPlanEntry {
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([date, mealType])
+}
+
+// "Family Favorites" — preset categories everyone answers (admin-managed)
+model FavoriteCategory {
+  id        String     @id @default(cuid())
+  label     String
+  emoji     String     @default("⭐")
+  group     String     @default("BASICS") // "BASICS" | "SIZES" | "DISLIKES" | "FUN"
+  active    Boolean    @default(true)
+  sortOrder Int        @default(0)
+  createdAt DateTime   @default(now())
+  favorites Favorite[]
+}
+
+// One person's answer. Preset answers link a category; custom ones carry
+// their own label/emoji and have categoryId = null.
+model Favorite {
+  id          String            @id @default(cuid())
+  userId      String
+  user        User              @relation("FavoriteOwner", fields: [userId], references: [id], onDelete: Cascade)
+  categoryId  String?
+  category    FavoriteCategory? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  customLabel String?
+  customEmoji String?
+  value       String
+  note        String?
+  updatedById String?
+  updatedBy   User?             @relation("FavoriteEditor", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@unique([userId, categoryId])
+  @@index([userId])
 }
